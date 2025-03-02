@@ -1,6 +1,6 @@
 // src/pages/PaluwaganList.tsx
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getFirestore, collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { Plus, Calendar, Users } from 'lucide-react';
@@ -11,7 +11,6 @@ export default function PaluwaganList() {
   const [loading, setLoading] = useState(true);
   const [paluwagans, setPaluwagans] = useState<Paluwagan[]>([]);
   const { currentUser } = useAuth();
-  const navigate = useNavigate();
   const db = getFirestore();
 
   useEffect(() => {

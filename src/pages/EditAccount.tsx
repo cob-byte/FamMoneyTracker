@@ -11,8 +11,6 @@ import {
 import { 
   ArrowLeft, 
   AlertCircle,
-  Menu,
-  X,
   Trash2
 } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -31,9 +29,8 @@ export default function EditAccount() {
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const { currentUser, logout } = useAuth();
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
   const db = getFirestore();
 
@@ -128,22 +125,6 @@ export default function EditAccount() {
       toast.error('Failed to delete account');
       setUpdating(false);
     }
-  }
-
-  async function handleLogout() {
-    try {
-      await logout();
-      toast.info('Logged out successfully');
-      navigate('/login');
-    } catch {
-      setError('Failed to log out');
-      toast.error('Failed to log out');
-    }
-  }
-
-  function getAccountTypeName(typeId: string) {
-    const type = accountTypes.find(t => t.id === typeId);
-    return type ? type.name : typeId;
   }
 
   if (loading) {

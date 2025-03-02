@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
-import { AlertCircle, CreditCard, Menu, X, ArrowLeft } from 'lucide-react';
+import { AlertCircle, ArrowLeft } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Sidebar from '../components/Sidebar';
 
@@ -13,7 +13,6 @@ export default function AddAccount() {
   const [currency, setCurrency] = useState('PHP');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const { currentUser } = useAuth();
   const navigate = useNavigate();

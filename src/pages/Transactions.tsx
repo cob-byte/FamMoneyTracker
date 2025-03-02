@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -11,7 +11,6 @@ import {
   where,
   startAfter,
   doc,
-  deleteDoc,
   getDoc,
   writeBatch,
   increment,
@@ -22,10 +21,7 @@ import {
   MinusCircle,
   Clock,
   ChevronDown,
-  ChevronUp,
   Trash2,
-  Menu,
-  X,
   Filter,
   Edit,
 } from 'lucide-react';
@@ -57,7 +53,6 @@ export default function Transactions() {
   const [currency, setCurrency] = useState('PHP');
   const [lastVisible, setLastVisible] = useState<any>(null);
   const [hasMore, setHasMore] = useState(true);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [filter, setFilter] = useState<{
     type: string;
     account: string;

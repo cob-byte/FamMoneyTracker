@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
@@ -357,8 +357,6 @@ export default function PaluwaganDetail() {
     return payoutDate >= today && !num.isPaid;
   });
 
-  const userNumbersCount = userNumbers.length;
-  const totalExpectedPayments = paluwagan.weeklyPayments.length * paluwagan.amountPerNumber * userNumbersCount;
   const totalPaidToDate = paluwagan.weeklyPayments
     .filter(payment => payment.isPaid)
     .reduce((sum, payment) => sum + payment.amount, 0);

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   getFirestore, 
@@ -14,7 +14,6 @@ import {
   startAfter,
   writeBatch,
   increment,
-  updateDoc,
 } from 'firebase/firestore';
 import { 
   ArrowLeft, 
@@ -25,8 +24,6 @@ import {
   RefreshCw, 
   ChevronRight, 
   CreditCard, 
-  Menu, 
-  X,
   Edit,
   Trash2
 } from 'lucide-react';
@@ -42,9 +39,8 @@ export default function AccountDetail() {
   const [loading, setLoading] = useState(true);
   const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [transactionLimit, setTransactionLimit] = useState(5);
+  const [transactionLimit] = useState(5);
   const [hasMoreTransactions, setHasMoreTransactions] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [lastVisible, setLastVisible] = useState<any>(null);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [formData, setFormData] = useState({
@@ -57,8 +53,7 @@ export default function AccountDetail() {
   });
   const [modalError, setModalError] = useState('');
 
-  const { currentUser, logout } = useAuth();
-  const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const db = getFirestore();
 
   const currencySymbols: { [key: string]: string } = {
@@ -278,17 +273,6 @@ export default function AccountDetail() {
 
   function loadMoreTransactions() {
     fetchTransactions(true);
-  }
-
-  async function handleLogout() {
-    try {
-      await logout();
-      toast.info('Logged out successfully');
-      navigate('/login');
-    } catch {
-      setError('Failed to log out');
-      toast.error('Failed to log out');
-    }
   }
 
   function formatAmount(amount: number, type?: string) {

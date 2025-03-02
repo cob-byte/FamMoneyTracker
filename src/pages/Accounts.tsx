@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getFirestore, collection, getDocs, doc, getDoc } from 'firebase/firestore';
-import { CreditCard, Clock, PlusCircle, ArrowRight, Menu, X, LogOut, AlertCircle } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { CreditCard, Clock, PlusCircle, ArrowRight, AlertCircle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { Account } from '../types/account';
 
@@ -12,10 +11,8 @@ export default function Accounts() {
   const [currency, setCurrency] = useState('PHP');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
-  const { currentUser, logout } = useAuth();
-  const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const db = getFirestore();
 
   // Currency symbols
@@ -26,7 +23,7 @@ export default function Accounts() {
   };
 
   // Account type icons (using the same icon for all types for simplicity)
-  const getAccountTypeIcon = (type: string) => {
+  const getAccountTypeIcon = () => {
     return <CreditCard className="h-6 w-6 text-indigo-600" />;
   };
 
@@ -77,19 +74,6 @@ export default function Accounts() {
       month: 'short',
       day: 'numeric'
     }).format(date);
-  }
-
-  async function handleLogout() {
-    setError('');
-
-    try {
-      await logout();
-      toast.info('Logged out successfully');
-      navigate('/login');
-    } catch {
-      setError('Failed to log out');
-      toast.error('Failed to log out');
-    }
   }
 
   const getAccountTypeName = (type: string) => {
@@ -153,7 +137,7 @@ export default function Accounts() {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
                               <div className="flex-shrink-0 bg-indigo-100 rounded-md p-2">
-                                {getAccountTypeIcon(account.type)}
+                                {getAccountTypeIcon()}
                               </div>
                               <div className="ml-4">
                                 <p className="text-sm font-medium text-indigo-600">{account.name}</p>

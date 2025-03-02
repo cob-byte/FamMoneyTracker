@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { LogOut, Menu, Home, X, CreditCard, Clock, Users, DollarSign, Wallet } from 'lucide-react';
 
 const Sidebar = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { currentUser, logout } = useAuth();
+  const { logout } = useAuth();
 
   const handleLogout = async () => {
     try {

@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getFirestore, collection, query, getDocs, orderBy, limit, doc, getDoc, where } from 'firebase/firestore';
-import { LogOut, AlertCircle, PlusCircle, MinusCircle, CreditCard, Clock, Menu, X, Users } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { getFirestore, collection, query, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
+import { AlertCircle, PlusCircle, MinusCircle, CreditCard, Clock, Users } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { Account, Transaction } from '../types/account';
 import { Paluwagan } from '../types/paluwagan'
@@ -16,8 +15,7 @@ export default function Dashboard() {
   const [paluwagans, setPaluwagans] = useState<Paluwagan[]>([]);
   const [totalBalance, setTotalBalance] = useState(0);
   const [currency, setCurrency] = useState('PHP');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { currentUser, logout } = useAuth();
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
   const db = getFirestore();
 
@@ -117,19 +115,6 @@ export default function Dashboard() {
     checkSetupAndFetchData();
   }, [currentUser, db, navigate]);
 
-  async function handleLogout() {
-    setError('');
-
-    try {
-      await logout();
-      toast.info('Logged out successfully');
-      navigate('/login');
-    } catch {
-      setError('Failed to log out');
-      toast.error('Failed to log out');
-    }
-  }
-
   function formatAmount(amount: number, type?: string) {
     const symbol = currencySymbols[currency] || currency;
     return `${type === 'expense' ? '-' : ''}${symbol}${amount.toFixed(2)}`;
@@ -151,33 +136,6 @@ export default function Dashboard() {
     } else {
       return <MinusCircle className="h-5 w-5 text-red-500" />;
     }
-  }
-
-  // Function to get upcoming paluwagan payouts
-  function getUpcomingPayouts() {
-    const today = new Date();
-    let allPayouts: Array<{paluwaganName: string, number: number, date: Date, amount: number}> = [];
-    
-    paluwagans.forEach(paluwagan => {
-      const userNumbers = paluwagan.numbers.filter(num => num.isOwner && !num.isPaid);
-      
-      userNumbers.forEach(num => {
-        if (num.payoutDate && num.payoutDate > today) {
-          allPayouts.push({
-            paluwaganName: paluwagan.name,
-            number: num.number,
-            date: num.payoutDate,
-            amount: paluwagan.payoutPerNumber
-          });
-        }
-      });
-    });
-    
-    // Sort by date (closest first)
-    allPayouts.sort((a, b) => a.date.getTime() - b.date.getTime());
-    
-    // Return the closest 3
-    return allPayouts.slice(0, 3);
   }
 
   if (loading) {
@@ -327,7 +285,7 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
-            
+
             {/* Debt Section */}
             <div className="mb-6">
               <div className="flex justify-between items-center mb-4">

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
-import { AlertCircle, Plus, DollarSign } from 'lucide-react';
+import { AlertCircle, Plus } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 export default function AccountSetup() {
