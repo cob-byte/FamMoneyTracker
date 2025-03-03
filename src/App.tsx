@@ -16,6 +16,7 @@ import PaluwaganList from './pages/PaluwaganList';
 import PaluwaganDetails from './pages/PaluwaganDetail';
 import CreatePaluwagan from './pages/CreatePaluwagan';
 import Debt from './pages/Debt';
+import NotFound from './pages/NotFound';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -125,6 +126,7 @@ function App() {
             } 
           />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>
     </Router>
