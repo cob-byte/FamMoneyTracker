@@ -7,6 +7,8 @@ import {
   sendPasswordResetEmail,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   User,
   UserCredential
 } from 'firebase/auth';
@@ -21,6 +23,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   signInWithGoogle: () => Promise<UserCredential>;
+  signInWithGoogleRedirect: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -59,10 +62,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   function signInWithGoogle() {
     const provider = new GoogleAuthProvider();
-    // Add scopes if needed
-    // provider.addScope('https://www.googleapis.com/auth/contacts.readonly');
-    
     return signInWithPopup(auth, provider);
+  }
+
+  function signInWithGoogleRedirect() {
+    const provider = new GoogleAuthProvider();
+    return signInWithRedirect(auth, provider);
   }
 
   useEffect(() => {
@@ -70,6 +75,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setCurrentUser(user);
       setLoading(false);
     });
+
+    // Handle redirect result on page load
+    getRedirectResult(auth)
+      .then((result) => {
+        // This gives you a Google Access Token
+        if (result) {
+          // User successfully signed in with redirect
+          console.log("User signed in via redirect:", result.user);
+          // You can handle navigation or notify the user here
+          // No need to set current user as it will be handled by onAuthStateChanged
+        }
+      })
+      .catch((error) => {
+        console.error("Redirect sign-in error:", error);
+      });
 
     return unsubscribe;
   }, []);
@@ -81,7 +101,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     login,
     logout,
     resetPassword,
-    signInWithGoogle
+    signInWithGoogle,
+    signInWithGoogleRedirect
   };
 
   return (

@@ -9,7 +9,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, signInWithGoogle } = useAuth();
+  const { login, signInWithGoogle, signInWithGoogleRedirect } = useAuth();
   const navigate = useNavigate();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -34,13 +34,33 @@ export default function Login() {
     try {
       setError('');
       setLoading(true);
-      await signInWithGoogle();
-      toast.success('Successfully logged in with Google!');
-      navigate('/dashboard');
+      
+      // Detect if user is on mobile
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        // Use redirect method for mobile
+        await signInWithGoogleRedirect();
+        // Note: No need to navigate or show toast here
+        // Authentication state will be handled after redirect completes
+      } else {
+        // Use popup method for desktop
+        await signInWithGoogle();
+        toast.success('Successfully logged in with Google!');
+        navigate('/dashboard');
+      }
     } catch (error: any) {
-      setError('Failed to log in with Google.');
-      toast.error('Failed to log in with Google.');
-      console.error(error);
+      // Check if it's the popup-closed error
+      if (error.code === 'auth/popup-closed-by-user') {
+        // This is not really an error, just user cancellation
+        toast.info('Google sign-in was cancelled');
+        setError('Sign-in cancelled. Please try again if you want to sign in with Google.');
+      } else {
+        // Handle other errors
+        setError('Failed to log in with Google.');
+        toast.error('Failed to log in with Google.');
+        console.error('Google sign-in error:', error);
+      }
     } finally {
       setLoading(false);
     }
