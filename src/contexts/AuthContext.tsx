@@ -5,6 +5,8 @@ import {
   signOut, 
   onAuthStateChanged,
   sendPasswordResetEmail,
+  GoogleAuthProvider,
+  signInWithPopup,
   User,
   UserCredential
 } from 'firebase/auth';
@@ -18,6 +20,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<UserCredential>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  signInWithGoogle: () => Promise<UserCredential>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -54,6 +57,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return sendPasswordResetEmail(auth, email);
   }
 
+  function signInWithGoogle() {
+    const provider = new GoogleAuthProvider();
+    // Add scopes if needed
+    // provider.addScope('https://www.googleapis.com/auth/contacts.readonly');
+    
+    return signInWithPopup(auth, provider);
+  }
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
@@ -69,7 +80,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signup,
     login,
     logout,
-    resetPassword
+    resetPassword,
+    signInWithGoogle
   };
 
   return (
