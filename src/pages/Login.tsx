@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LogIn, Mail, Lock, AlertCircle } from 'lucide-react';
+import { User, Mail, Lock, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 export default function Login() {
@@ -68,7 +68,7 @@ export default function Login() {
           <div className="text-center">
             <div className="flex justify-center">
               <div className="h-16 w-16 rounded-full bg-indigo-100 flex items-center justify-center">
-                <LogIn className="h-8 w-8 text-indigo-600" />
+                <User className="h-8 w-8 text-indigo-600" />
               </div>
             </div>
             <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Welcome Back!</h2>

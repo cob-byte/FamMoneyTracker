@@ -15,7 +15,11 @@ import AccountDetail from './pages/AccountDetail';
 import PaluwaganList from './pages/PaluwaganList';
 import PaluwaganDetails from './pages/PaluwaganDetail';
 import CreatePaluwagan from './pages/CreatePaluwagan';
-import Debt from './pages/Debt';
+import EditPaluwagan from './pages/EditPaluwagan';
+import DebtList from './pages/DebtList';
+import DebtDetail from './pages/DebtDetail';
+import CreateDebt from './pages/CreateDebt';
+import EditDebt from './pages/EditDebt';
 import NotFound from './pages/NotFound';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -110,6 +114,14 @@ function App() {
             } 
           />
           <Route 
+            path="/paluwagan/:paluwaganId/edit" 
+            element={
+              <PrivateRoute>
+                <EditPaluwagan />
+              </PrivateRoute>
+            } 
+          />
+          <Route 
             path="/paluwagan/create" 
             element={
               <PrivateRoute>
@@ -121,7 +133,31 @@ function App() {
             path="/debt" 
             element={
               <PrivateRoute>
-                <Debt />
+                <DebtList />
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/debt/create" 
+            element={
+              <PrivateRoute>
+                <CreateDebt />
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/debt/:debtId" 
+            element={
+              <PrivateRoute>
+                <DebtDetail />
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/debt/:debtId/edit" 
+            element={
+              <PrivateRoute>
+                <EditDebt />
               </PrivateRoute>
             } 
           />

@@ -384,9 +384,6 @@ export default function Transactions() {
           if (account) {
             const currentBalance = account.balance || 0;
             
-            // Calculate what the balance would be after the transaction
-            // For editing: first undo the original transaction (add back if it was expense)
-            // Then apply the new transaction (subtract if it's expense)
             const originalAddBack = originalTransaction.type === 'expense' ? originalTransaction.amount : 0;
             const newSubtract = formData.type === 'expense' ? newAmount : 0;
             

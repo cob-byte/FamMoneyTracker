@@ -48,16 +48,23 @@ export default function CreatePaluwagan() {
     const dates: Date[] = [];
     let currentDate = new Date(startingDate);
     
-    // First payout is on the start date
+    // Find the first Sunday (either upcoming Sunday or next Sunday if today is Sunday)
+    if (currentDate.getDay() === 0) { // If start date is already a Sunday
+      // Move to the next Sunday
+      currentDate.setDate(currentDate.getDate() + 7);
+    } else {
+      // Find the upcoming Sunday
+      const daysUntilSunday = 7 - currentDate.getDay();
+      currentDate.setDate(currentDate.getDate() + daysUntilSunday);
+    }
+    
+    // First payout is on the first Sunday
     dates.push(new Date(currentDate));
     
     // Generate subsequent Sundays
     for (let i = 1; i < totalNums; i++) {
-      // Find the next Sunday
-      do {
-        currentDate.setDate(currentDate.getDate() + 1);
-      } while (currentDate.getDay() !== 0); // 0 represents Sunday
-      
+      // Add 7 days to get to the next Sunday
+      currentDate.setDate(currentDate.getDate() + 7);
       dates.push(new Date(currentDate));
     }
     

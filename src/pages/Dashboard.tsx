@@ -2,23 +2,25 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getFirestore, collection, query, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
-import { AlertCircle, PlusCircle, MinusCircle, CreditCard, Clock, Wallet, Building, DollarSign, Smartphone } from 'lucide-react';
+import { AlertCircle, PlusCircle, MinusCircle, Clock } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { Account, Transaction } from '../types/account';
 import DashboardPaluwaganPreview from '../components/DashboardPaluwaganPreview';
+import DashboardDebtPreview from '../components/DashboardDebtPreview';
+import DashboardAccountPreview from '../components/DashboardAccountPreview';
 
 export default function Dashboard() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [_accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [totalBalance, setTotalBalance] = useState(0);
+  const [totalAccounts, setTotalAccounts] = useState(0);
   const [currency, setCurrency] = useState('PHP');
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const db = getFirestore();
 
-  // Currency symbols
   const currencySymbols: { [key: string]: string } = {
     PHP: '₱',
     USD: '$',
@@ -28,39 +30,48 @@ export default function Dashboard() {
   useEffect(() => {
     async function checkSetupAndFetchData() {
       if (!currentUser) return;
-      
+  
       try {
         const userDocRef = doc(db, 'users', currentUser.uid);
         const userDoc = await getDoc(userDocRef);
-        
+  
         if (!userDoc.exists() || !userDoc.data().setupComplete) {
-          // User hasn't completed setup, redirect to setup page
           navigate('/account-setup');
           return;
         }
-        
-        // Set user currency preference
+  
         if (userDoc.data().currency) {
           setCurrency(userDoc.data().currency);
         }
-        
-        // Fetch accounts
+  
+        // Fetch all accounts
         const accountsCollectionRef = collection(db, 'users', currentUser.uid, 'accounts');
         const accountsQuery = query(accountsCollectionRef);
         const accountsSnapshot = await getDocs(accountsQuery);
-        
-        const accountsData = accountsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Account));
-        
-        setAccounts(accountsData);
-        
-        // Calculate total balance across all accounts
-        const total = accountsData.reduce((sum, account) => sum + (account.balance || 0), 0);
-        setTotalBalance(total);
-        
-        // Fetch recent transactions
+  
+        const allAccounts = accountsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            name: data.name,
+            type: data.type,
+            balance: data.balance || 0,
+            createdAt: data.createdAt ? data.createdAt.toDate() : new Date()
+          } as Account;
+        });
+  
+        // Calculate total balance and total accounts
+        const totalBalanceCalc = allAccounts.reduce((sum, account) => sum + (account.balance || 0), 0);
+        setTotalBalance(totalBalanceCalc);
+        setTotalAccounts(allAccounts.length);
+  
+        // Sort by balance descending and take the first 3
+        const sortedPreview = allAccounts
+          .sort((a, b) => (b.balance || 0) - (a.balance || 0))
+          .slice(0, 3);
+        setAccounts(sortedPreview);
+  
+        // Fetch transactions (unchanged, but updated mapping for consistency)
         const transactionsCollectionRef = collection(db, 'users', currentUser.uid, 'transactions');
         const transactionsQuery = query(
           transactionsCollectionRef,
@@ -68,15 +79,22 @@ export default function Dashboard() {
           limit(5)
         );
         const transactionsSnapshot = await getDocs(transactionsQuery);
-        
-        const transactionsData = transactionsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          date: doc.data().date?.toDate() // Convert Firestore timestamp to JS Date
-        } as Transaction));
-        
+  
+        const transactionsData = transactionsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            description: data.description,
+            amount: data.amount,
+            type: data.type,
+            category: data.category,
+            date: data.date ? data.date.toDate() : new Date(),
+            createdAt: data.createdAt ? data.createdAt.toDate() : new Date(),
+            accountId: data.accountId
+          } as Transaction;
+        });
+  
         setTransactions(transactionsData);
-        
         setLoading(false);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -84,7 +102,7 @@ export default function Dashboard() {
         setLoading(false);
       }
     }
-    
+  
     checkSetupAndFetchData();
   }, [currentUser, db, navigate]);
 
@@ -95,35 +113,14 @@ export default function Dashboard() {
 
   function formatDate(date: Date) {
     if (!date) return 'Unknown date';
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    }).format(date);
+    return new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: 'numeric' }).format(date);
   }
 
-  // Determine transaction icon
   function getTransactionIcon(type: string) {
     if (type === 'income') {
       return <PlusCircle className="h-5 w-5 text-green-500" />;
     } else {
       return <MinusCircle className="h-5 w-5 text-red-500" />;
-    }
-  }
-
-  // Get account icon based on account type
-  function getAccountIcon(accountType: string) {
-    switch(accountType) {
-      case 'cash':
-        return <DollarSign className="h-6 w-6 text-indigo-600" />;
-      case 'bank':
-        return <Building className="h-6 w-6 text-indigo-600" />;
-      case 'credit':
-        return <CreditCard className="h-6 w-6 text-indigo-600" />;
-      case 'ewallet':
-        return <Smartphone className="h-6 w-6 text-indigo-600" />;
-      default:
-        return <Wallet className="h-6 w-6 text-indigo-600" />;
     }
   }
 
@@ -140,7 +137,6 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-100">
       <Sidebar/>
-
       <div className="md:pl-64 flex flex-col flex-1">
         <main className="flex-1">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6">
@@ -166,88 +162,27 @@ export default function Dashboard() {
                 <div className="mt-1 text-3xl font-semibold text-gray-900">
                   {formatAmount(totalBalance)}
                 </div>
-                <div className="mt-1 text-sm text-gray-500">Across {accounts.length} accounts</div>
+                <div className="mt-1 text-sm text-gray-500">Across {totalAccounts} accounts</div>
               </div>
             </div>
             
             {/* Accounts section */}
-            <div className="mb-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium leading-6 text-gray-900">Your Accounts</h3>
-                <Link
-                  to="/add-account"
-                  className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
-                >
-                  + Add Account
-                </Link>
-              </div>
-              
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {accounts.map((account) => (
-                  <div key={account.id} className="bg-white overflow-hidden shadow rounded-lg">
-                    <div className="px-4 py-5 sm:p-6">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 bg-indigo-100 rounded-md p-3">
-                          {getAccountIcon(account.type)}
-                        </div>
-                        <div className="ml-5 w-0 flex-1">
-                          <dl>
-                            <dt className="text-sm font-medium text-gray-500 truncate">{account.name}</dt>
-                            <dd>
-                              <div className="text-lg font-medium text-gray-900">{formatAmount(account.balance || 0)}</div>
-                            </dd>
-                          </dl>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-gray-50 px-4 py-4 sm:px-6">
-                      <div className="text-sm">
-                        <Link to={`/accounts/${account.id}`} className="font-medium text-indigo-600 hover:text-indigo-500">
-                          View details
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <DashboardAccountPreview />
             
             {/* Paluwagan Section */}
             <DashboardPaluwaganPreview />
 
             {/* Debt Section */}
-            <div className="mb-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium leading-6 text-gray-900">Debt Management</h3>
-                <Link
-                  to="/debt"
-                  className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
-                >
-                  View all
-                </Link>
-              </div>
-              
-              <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                <ul className="divide-y divide-gray-200">
-                  <li className="px-4 py-5 sm:px-6 text-center text-gray-500">
-                    Coming Soon - Track your debts and loans
-                  </li>
-                </ul>
-              </div>
-            </div>
+            <DashboardDebtPreview />
 
             {/* Recent transactions section */}
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium leading-6 text-gray-900">Recent Transactions</h3>
-                <Link
-                  to="/transactions"
-                  className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
-                >
+                <Link to="/transactions" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
                   View all
                 </Link>
               </div>
-              
               <div className="bg-white shadow overflow-hidden sm:rounded-md">
                 <ul className="divide-y divide-gray-200">
                   {transactions.length > 0 ? (

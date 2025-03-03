@@ -1,51 +1,68 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getFirestore, collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
+import { getFirestore, collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { Calendar, Users, TrendingUp, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Paluwagan, PaluwaganNumber, WeeklyPayment } from '../types/paluwagan';
 
 export default function DashboardPaluwaganPreview() {
-  const [loading, setLoading] = useState(true);
-  const [paluwagans, setPaluwagans] = useState<Paluwagan[]>([]);
-  const { currentUser } = useAuth();
-  const db = getFirestore();
-
-  useEffect(() => {
-    async function fetchPaluwagans() {
-      if (!currentUser) return;
-      
-      try {
-        const paluwagansCollectionRef = collection(db, 'users', currentUser.uid, 'paluwagans');
-        const paluwagansQuery = query(paluwagansCollectionRef, orderBy('createdAt', 'desc'), limit(3));
-        const paluwagansSnapshot = await getDocs(paluwagansQuery);
-        
-        const paluwagansData = paluwagansSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          startDate: doc.data().startDate?.toDate(),
-          createdAt: doc.data().createdAt?.toDate(),
-          updatedAt: doc.data().updatedAt?.toDate(),
-          numbers: doc.data().numbers?.map((num: any) => ({
-            ...num,
-            payoutDate: num.payoutDate?.toDate()
-          })),
-          weeklyPayments: doc.data().weeklyPayments?.map((payment: any) => ({
-            ...payment,
-            dueDate: payment.dueDate?.toDate()
-          }))
-        })) as Paluwagan[];
-        
-        setPaluwagans(paluwagansData);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching paluwagans:', error);
-        setLoading(false);
+    const [loading, setLoading] = useState(true);
+    const [paluwagans, setPaluwagans] = useState<Paluwagan[]>([]);
+    const { currentUser } = useAuth();
+    const db = getFirestore();
+  
+    useEffect(() => {
+      async function fetchPaluwagans() {
+        if (!currentUser) return;
+  
+        try {
+          const paluwagansCollectionRef = collection(db, 'users', currentUser.uid, 'paluwagans');
+          const paluwagansQuery = query(paluwagansCollectionRef, orderBy('createdAt', 'desc'));
+          const paluwagansSnapshot = await getDocs(paluwagansQuery);
+  
+          const paluwagansData = paluwagansSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            startDate: doc.data().startDate?.toDate(),
+            createdAt: doc.data().createdAt?.toDate(),
+            updatedAt: doc.data().updatedAt?.toDate(),
+            numbers: doc.data().numbers?.map((num: any) => ({
+              ...num,
+              payoutDate: num.payoutDate?.toDate()
+            })),
+            weeklyPayments: doc.data().weeklyPayments?.map((payment: any) => ({
+              ...payment,
+              dueDate: payment.dueDate?.toDate()
+            }))
+          })) as Paluwagan[];
+  
+          const paluwagansWithDueDates = paluwagansData.map(paluwagan => {
+            const currentWeekPayment = getCurrentWeekPayment(paluwagan);
+            return {
+              ...paluwagan,
+              nextDueDate: currentWeekPayment ? currentWeekPayment.dueDate : null
+            };
+          });
+  
+          // Sort by next due date (earliest first, nulls last)
+          const sortedPaluwagans = paluwagansWithDueDates.sort((a, b) => {
+            if (!a.nextDueDate && !b.nextDueDate) return 0;
+            if (!a.nextDueDate) return 1;
+            if (!b.nextDueDate) return -1;
+            return a.nextDueDate.getTime() - b.nextDueDate.getTime();
+          });
+  
+          // Take the first 3
+          setPaluwagans(sortedPaluwagans.slice(0, 3));
+          setLoading(false);
+        } catch (error) {
+          console.error('Error fetching paluwagans:', error);
+          setLoading(false);
+        }
       }
-    }
-    
-    fetchPaluwagans();
-  }, [currentUser, db]);
+  
+      fetchPaluwagans();
+    }, [currentUser, db]);
 
   function formatDate(date: Date | undefined): string {
     if (!date) return 'Unknown date';
@@ -115,17 +132,33 @@ export default function DashboardPaluwaganPreview() {
     return totalReceived - totalPaid;
   }
 
+  // First, render the header consistently regardless of loading/empty state
+  const header = (
+    <div className="flex justify-between items-center mb-4">
+      <h3 className="text-lg font-medium leading-6 text-gray-900">Your Paluwagan</h3>
+      <Link
+        to="/paluwagan"
+        className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+      >
+        View all
+      </Link>
+    </div>
+  );
+
+  // Now handle different content states
+  let content;
+  
   if (loading) {
-    return (
-      <div className="bg-white shadow overflow-hidden sm:rounded-md p-4 text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-        <p className="mt-2 text-sm text-gray-500">Loading Paluwagan data...</p>
+    content = (
+      <div className="bg-white shadow overflow-hidden sm:rounded-md p-4">
+        <div className="flex justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        </div>
+        <p className="mt-2 text-sm text-gray-500 text-center">Loading Paluwagan data...</p>
       </div>
     );
-  }
-
-  if (paluwagans.length === 0) {
-    return (
+  } else if (paluwagans.length === 0) {
+    content = (
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
         <div className="text-center py-8">
           <Users className="mx-auto h-12 w-12 text-gray-400" />
@@ -144,20 +177,8 @@ export default function DashboardPaluwaganPreview() {
         </div>
       </div>
     );
-  }
-
-  return (
-    <div className="mb-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium leading-6 text-gray-900">Your Paluwagan</h3>
-        <Link
-          to="/paluwagan"
-          className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
-        >
-          View all
-        </Link>
-      </div>
-      
+  } else {
+    content = (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {paluwagans.map((paluwagan) => {
           const nextPayout = calculateNextPayout(paluwagan);
@@ -250,6 +271,14 @@ export default function DashboardPaluwaganPreview() {
           );
         })}
       </div>
+    );
+  }
+
+  // Return the component with consistent structure
+  return (
+    <div className="mb-6">
+      {header}
+      {content}
     </div>
   );
 }

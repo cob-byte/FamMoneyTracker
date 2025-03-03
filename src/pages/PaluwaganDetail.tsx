@@ -406,6 +406,12 @@ export default function PaluwaganDetail() {
               <h2 className="text-2xl font-bold text-gray-900">
                 {paluwagan?.name || 'Paluwagan Details'}
               </h2>
+              <Link
+                to={`/paluwagan/${paluwaganId}/edit`}
+                className="ml-4 inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Edit
+              </Link>
             </div>
             <div className="mt-2 flex items-center text-sm text-gray-500">
               <Calendar className="mr-1.5 h-5 w-5" />
