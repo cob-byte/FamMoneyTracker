@@ -57,8 +57,7 @@ export default function Login() {
         setError('Sign-in cancelled. Please try again if you want to sign in with Google.');
       } else {
         // Handle other errors
-        const errorMessage = `Failed to log in with Google: ${error.message || error.code || 'Unknown error'}`;
-        setError(errorMessage);
+        setError('Failed to log in with Google.');
         toast.error('Failed to log in with Google.');
         console.error('Google sign-in error:', error);
       }

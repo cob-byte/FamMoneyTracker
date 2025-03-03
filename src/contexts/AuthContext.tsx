@@ -14,6 +14,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../firebase/config';
 import LoadingScreen from '../components/LoadingScreen';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -43,6 +44,7 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   function signup(email: string, password: string) {
     return createUserWithEmailAndPassword(auth, email, password);
@@ -79,12 +81,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Handle redirect result on page load
     getRedirectResult(auth)
       .then((result) => {
-        // This gives you a Google Access Token
         if (result) {
-          // User successfully signed in with redirect
           console.log("User signed in via redirect:", result.user);
-          // You can handle navigation or notify the user here
-          // No need to set current user as it will be handled by onAuthStateChanged
+          // Navigate to dashboard after successful redirect sign-in
+          navigate('/dashboard');
         }
       })
       .catch((error) => {
@@ -92,7 +92,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
 
     return unsubscribe;
-  }, []);
+  }, [navigate]);
 
   const value = {
     currentUser,
