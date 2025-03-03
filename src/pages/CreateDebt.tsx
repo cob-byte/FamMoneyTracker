@@ -107,7 +107,7 @@ export default function CreateDebt() {
             <div className="mb-6 flex items-center">
               <button
                 onClick={() => navigate(-1)}
-                className="mr-4 text-gray-500 hover:text-gray-700 focus:outline-none"
+                className="inline-flex items-center mr-3 text-indigo-600 hover:text-indigo-800"
                 aria-label="Go back"
               >
                 <ArrowLeft className="h-5 w-5" />

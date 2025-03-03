@@ -5,6 +5,7 @@ import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/fire
 import { toast } from 'react-toastify';
 import Sidebar from '../components/Sidebar';
 import { PaluwaganNumber, WeeklyPayment } from '../types/paluwagan';
+import { ArrowLeft } from 'lucide-react';
 
 export default function CreatePaluwagan() {
   const [name, setName] = useState('');
@@ -162,12 +163,17 @@ export default function CreatePaluwagan() {
       <div className="md:pl-64 flex flex-col flex-1">
         <main className="flex-1">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6">
-            <div className="md:flex md:items-center md:justify-between mb-6">
-              <div className="flex-1 min-w-0">
-                <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-                  Create New Paluwagan
-                </h2>
-              </div>
+          <div className="mb-6 flex items-center">
+              <button
+                onClick={() => navigate(-1)}
+                className="inline-flex items-center mr-3 text-indigo-600 hover:text-indigo-800"
+                aria-label="Go back"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <h1 className="text-2xl font-semibold text-gray-900">
+                Create New Paluwagan
+              </h1>
             </div>
 
             <div className="bg-white shadow overflow-hidden sm:rounded-lg">
