@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   getFirestore, 
@@ -15,7 +15,7 @@ import {
 import { toast } from 'react-toastify';
 import Sidebar from '../components/Sidebar';
 import { Paluwagan } from '../types/paluwagan';
-import { Calendar, Check, X, AlertCircle } from 'lucide-react';
+import { Calendar, Check, X, AlertCircle, DollarSign, ArrowLeft } from 'lucide-react';
 
 export default function PaluwaganDetail() {
   const { paluwaganId } = useParams<{ paluwaganId: string }>();
@@ -63,7 +63,6 @@ export default function PaluwaganDetail() {
       if (!paluwaganId || !currentUser) return;
 
       try {
-        // Fetch paluwagan details
         const docRef = doc(db, 'users', currentUser.uid, 'paluwagans', paluwaganId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
@@ -73,13 +72,12 @@ export default function PaluwaganDetail() {
           setError('Paluwagan not found');
         }
 
-        // Fetch user accounts
         const accountsCollectionRef = collection(db, 'users', currentUser.uid, 'accounts');
         const accountsSnapshot = await getDocs(accountsCollectionRef);
         const accountsData = accountsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setAccounts(accountsData);
         if (accountsData.length > 0) {
-          setSelectedAccountId(accountsData[0].id); // Default to first account
+          setSelectedAccountId(accountsData[0].id);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -98,12 +96,20 @@ export default function PaluwaganDetail() {
     try {
       setLoading(true);
       const paluwaganRef = doc(db, 'users', currentUser.uid, 'paluwagans', paluwaganId);
+      
+      const selectedAccount = accounts.find(account => account.id === selectedAccountId);
+      if (!selectedAccount) throw new Error('Selected account not found');
 
       if (modalType === 'payment' && selectedWeek !== null) {
         const payment = paluwagan.weeklyPayments.find(p => p.weekNumber === selectedWeek);
         if (!payment) throw new Error('Payment not found');
 
-        // Create expense transaction
+        if (payment.amount > selectedAccount.balance) {
+          toast.error(`Insufficient funds in ${selectedAccount.name}. Available balance: ₱${selectedAccount.balance.toFixed(2)}`);
+          setLoading(false);
+          return;
+        }
+
         const transactionDocRef = doc(db, 'users', currentUser.uid, 'transactions', Date.now().toString());
         await setDoc(transactionDocRef, {
           type: 'expense',
@@ -111,15 +117,14 @@ export default function PaluwaganDetail() {
           description: `Paluwagan payment for week ${selectedWeek}`,
           category: 'Paluwagan',
           accountId: selectedAccountId,
+          accountName: selectedAccount.name,
           date: new Date(),
           createdAt: new Date(),
         });
 
-        // Update account balance
         const accountDocRef = doc(db, 'users', currentUser.uid, 'accounts', selectedAccountId);
         await updateDoc(accountDocRef, { balance: increment(-payment.amount) });
 
-        // Update paluwagan with payment status and account
         const updatedWeeklyPayments = paluwagan.weeklyPayments.map(p =>
           p.weekNumber === selectedWeek ? { ...p, isPaid: true, accountId: selectedAccountId } : p
         );
@@ -137,7 +142,9 @@ export default function PaluwaganDetail() {
           return;
         }
 
-        // Create income transaction
+        const selectedAccount = accounts.find(account => account.id === selectedAccountId);
+        if (!selectedAccount) throw new Error('Selected account not found');
+
         const transactionDocRef = doc(db, 'users', currentUser.uid, 'transactions', Date.now().toString());
         await setDoc(transactionDocRef, {
           type: 'income',
@@ -145,15 +152,14 @@ export default function PaluwaganDetail() {
           description: `Paluwagan payout for number ${selectedNumber}`,
           category: 'Paluwagan',
           accountId: selectedAccountId,
+          accountName: selectedAccount.name,
           date: new Date(),
           createdAt: new Date(),
         });
 
-        // Update account balance
         const accountDocRef = doc(db, 'users', currentUser.uid, 'accounts', selectedAccountId);
         await updateDoc(accountDocRef, { balance: increment(paluwagan.payoutPerNumber) });
 
-        // Update paluwagan with payout status and account
         const updatedNumbers = paluwagan.numbers.map(n =>
           n.number === selectedNumber ? { ...n, isPaid: true, accountId: selectedAccountId } : n
         );
@@ -185,7 +191,9 @@ export default function PaluwaganDetail() {
       const payment = paluwagan.weeklyPayments.find(p => p.weekNumber === weekNumber);
       if (!payment || !payment.accountId) throw new Error('Payment or account not found');
 
-      // Create reversal income transaction
+      const account = accounts.find(acc => acc.id === payment.accountId);
+      if (!account) throw new Error('Account not found');
+
       const transactionDocRef = doc(db, 'users', currentUser.uid, 'transactions', Date.now().toString());
       await setDoc(transactionDocRef, {
         type: 'income',
@@ -193,15 +201,14 @@ export default function PaluwaganDetail() {
         description: `Reversal of paluwagan payment for week ${weekNumber}`,
         category: 'Paluwagan',
         accountId: payment.accountId,
+        accountName: account.name,
         date: new Date(),
         createdAt: new Date(),
       });
 
-      // Update account balance
       const accountDocRef = doc(db, 'users', currentUser.uid, 'accounts', payment.accountId);
       await updateDoc(accountDocRef, { balance: increment(payment.amount) });
 
-      // Update paluwagan
       const paluwaganRef = doc(db, 'users', currentUser.uid, 'paluwagans', paluwaganId);
       const updatedWeeklyPayments = paluwagan.weeklyPayments.map(p =>
         p.weekNumber === weekNumber ? { ...p, isPaid: false } : p
@@ -226,8 +233,16 @@ export default function PaluwaganDetail() {
     try {
       const numData = paluwagan.numbers.find(n => n.number === number);
       if (!numData || !numData.accountId) throw new Error('Number or account not found');
+      
+      const account = accounts.find(acc => acc.id === numData.accountId);
+      if (!account) throw new Error('Account not found');
 
-      // Create reversal expense transaction
+      
+      if (paluwagan.payoutPerNumber > account.balance) {
+        toast.error(`Insufficient funds in ${account.name}. Available balance: ₱${account.balance.toFixed(2)}`);
+        return;
+      }
+
       const transactionDocRef = doc(db, 'users', currentUser.uid, 'transactions', Date.now().toString());
       await setDoc(transactionDocRef, {
         type: 'expense',
@@ -235,15 +250,14 @@ export default function PaluwaganDetail() {
         description: `Reversal of paluwagan payout for number ${number}`,
         category: 'Paluwagan',
         accountId: numData.accountId,
+        accountName: account.name,
         date: new Date(),
         createdAt: new Date(),
       });
 
-      // Update account balance
       const accountDocRef = doc(db, 'users', currentUser.uid, 'accounts', numData.accountId);
       await updateDoc(accountDocRef, { balance: increment(-paluwagan.payoutPerNumber) });
 
-      // Update paluwagan
       const paluwaganRef = doc(db, 'users', currentUser.uid, 'paluwagans', paluwaganId);
       const updatedNumbers = paluwagan.numbers.map(n =>
         n.number === number ? { ...n, isPaid: false } : n
@@ -357,22 +371,27 @@ export default function PaluwaganDetail() {
     return payoutDate >= today && !num.isPaid;
   });
 
-  const totalPaidToDate = paluwagan.weeklyPayments
+  // Financial summary calculations
+  const totalPaid = paluwagan.weeklyPayments
     .filter(payment => payment.isPaid)
     .reduce((sum, payment) => sum + payment.amount, 0);
-  const totalReceivedToDate = userNumbers
+  const totalReceived = userNumbers
     .filter(num => num.isPaid)
     .reduce((sum) => sum + paluwagan.payoutPerNumber, 0);
-  const currentNetPosition = totalReceivedToDate - totalPaidToDate;
+  const netPosition = totalReceived - totalPaid;
 
+  // Progress calculation
   const totalWeeks = paluwagan.weeklyPayments.length;
-  const currentWeekIndex = paluwagan.weeklyPayments.findIndex(payment => {
+  const completedWeeks = paluwagan.weeklyPayments.filter(payment => payment.isPaid).length;
+  const progressPercentage = Math.min(Math.round((completedWeeks / totalWeeks) * 100), 100);
+
+  // Upcoming payments (due within 7 days)
+  const upcomingPayments = paluwagan.weeklyPayments.filter(payment => {
     const dueDate = new Date(payment.dueDate);
     dueDate.setHours(0, 0, 0, 0);
-    return dueDate >= today;
+    const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
+    return !payment.isPaid && diffDays <= 7 && diffDays >= 0;
   });
-  const currentWeek = currentWeekIndex !== -1 ? currentWeekIndex + 1 : totalWeeks;
-  const progressPercentage = Math.min(Math.round((currentWeek / totalWeeks) * 100), 100);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -380,7 +399,14 @@ export default function PaluwaganDetail() {
       <div className="md:pl-64 flex flex-col flex-1">
         <main className="flex-1">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6">
-            <h2 className="text-2xl font-bold text-gray-900">{paluwagan.name}</h2>
+            <div className="flex items-center">
+              <Link to="/paluwagan" className="mr-2 text-indigo-600 hover:text-indigo-800">
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {paluwagan?.name || 'Paluwagan Details'}
+              </h2>
+            </div>
             <div className="mt-2 flex items-center text-sm text-gray-500">
               <Calendar className="mr-1.5 h-5 w-5" />
               Started: {formatDate(paluwagan.startDate)}
@@ -389,15 +415,29 @@ export default function PaluwaganDetail() {
             {/* Progress Tracker */}
             <div className="mt-6 bg-white shadow overflow-hidden sm:rounded-lg">
               <div className="px-4 py-5 sm:p-6">
-                <h3 className="text-lg font-medium text-gray-900">Paluwagan Progress</h3>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-medium text-gray-900">Paluwagan Progress</h3>
+                  <span className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
+                    {progressPercentage}% Complete
+                  </span>
+                </div>
                 <div className="mt-3">
                   <div className="relative pt-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-indigo-600">Week {currentWeek} of {totalWeeks}</span>
-                      <span className="text-xs font-semibold text-indigo-600">{progressPercentage}%</span>
+                    <div className="flex mb-2 items-center justify-between">
+                      <div>
+                        <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-indigo-600 bg-indigo-200">
+                          Week {completedWeeks} of {totalWeeks}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-semibold inline-block text-indigo-600">
+                          {completedWeeks}/{totalWeeks} Weeks Paid
+                        </span>
+                      </div>
                     </div>
-                    <div className="overflow-hidden h-2 mt-1 text-xs flex rounded bg-indigo-200">
-                      <div style={{ width: `${progressPercentage}%` }} className="bg-indigo-500"></div>
+                    <div className="overflow-hidden h-4 mb-4 text-xs flex rounded-full bg-indigo-200">
+                      <div style={{ width: `${progressPercentage}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-500 transition-all duration-500">
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -409,17 +449,46 @@ export default function PaluwaganDetail() {
               <div className="px-4 py-5 sm:p-6">
                 <h3 className="text-lg font-medium text-gray-900">Financial Summary</h3>
                 <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
-                  <div className="bg-white overflow-hidden shadow rounded-lg p-5">
-                    <div className="text-sm font-medium text-gray-500">Total Paid to Date</div>
-                    <div className="mt-1 text-3xl font-semibold text-gray-900">₱{totalPaidToDate.toLocaleString()}</div>
+                  <div className="bg-gray-50 overflow-hidden shadow-sm rounded-lg border border-gray-200">
+                    <div className="p-5">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 bg-blue-500 rounded-md p-3">
+                          <DollarSign className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="ml-5">
+                          <div className="text-sm font-medium text-gray-500">Total Paid</div>
+                          <div className="mt-1 text-3xl font-bold text-gray-900">₱{totalPaid.toLocaleString()}</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="bg-white overflow-hidden shadow rounded-lg p-5">
-                    <div className="text-sm font-medium text-gray-500">Total Received to Date</div>
-                    <div className="mt-1 text-3xl font-semibold text-gray-900">₱{totalReceivedToDate.toLocaleString()}</div>
+                  <div className="bg-gray-50 overflow-hidden shadow-sm rounded-lg border border-gray-200">
+                    <div className="p-5">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 bg-green-500 rounded-md p-3">
+                          <DollarSign className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="ml-5">
+                          <div className="text-sm font-medium text-gray-500">Total Received</div>
+                          <div className="mt-1 text-3xl font-bold text-gray-900">₱{totalReceived.toLocaleString()}</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="bg-white overflow-hidden shadow rounded-lg p-5">
-                    <div className="text-sm font-medium text-gray-500">Current Net Position</div>
-                    <div className="mt-1 text-3xl font-semibold text-gray-900">₱{currentNetPosition.toLocaleString()}</div>
+                  <div className={`bg-gray-50 overflow-hidden shadow-sm rounded-lg border ${netPosition >= 0 ? 'border-green-200' : 'border-red-200'}`}>
+                    <div className="p-5">
+                      <div className="flex items-center">
+                        <div className={`flex-shrink-0 ${netPosition >= 0 ? 'bg-green-500' : 'bg-red-500'} rounded-md p-3`}>
+                          <DollarSign className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="ml-5">
+                          <div className="text-sm font-medium text-gray-500">Net Position</div>
+                          <div className={`mt-1 text-3xl font-bold ${netPosition >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            ₱{netPosition.toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -429,13 +498,61 @@ export default function PaluwaganDetail() {
             {nextPayout && (
               <div className="mt-6 bg-white shadow overflow-hidden sm:rounded-lg">
                 <div className="px-4 py-5 sm:p-6">
-                  <h3 className="text-lg font-medium text-gray-900">Next Payout</h3>
-                  <div className="mt-2 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-500">Number: <span className="font-medium text-gray-900">{nextPayout.number}</span></p>
-                      <p className="text-sm text-gray-500">Date: <span className="font-medium text-gray-900">{formatDate(nextPayout.payoutDate)}</span></p>
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-medium text-gray-900">Next Payout</h3>
+                    <span className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                      Coming Soon
+                    </span>
+                  </div>
+                  <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 bg-green-500 rounded-full p-2">
+                          <Calendar className="h-5 w-5 text-white" />
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-sm text-gray-700">Number: <span className="font-semibold text-gray-900">{nextPayout.number}</span></p>
+                          <p className="text-sm text-gray-700">Date: <span className="font-semibold text-gray-900">{formatDate(nextPayout.payoutDate)}</span></p>
+                        </div>
+                      </div>
+                      <div className="text-2xl font-bold text-green-600">₱{paluwagan.payoutPerNumber.toLocaleString()}</div>
                     </div>
-                    <div className="text-2xl font-semibold text-green-600">₱{paluwagan.payoutPerNumber.toLocaleString()}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Upcoming Payments Alert */}
+            {upcomingPayments.length > 0 && (
+              <div className="mt-6 bg-white shadow overflow-hidden sm:rounded-lg">
+                <div className="px-4 py-5 sm:p-6">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-medium text-gray-900">Upcoming Payments</h3>
+                    <span className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                      {upcomingPayments.length} Due Soon
+                    </span>
+                  </div>
+                  <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <AlertCircle className="h-6 w-6 text-yellow-500" />
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-yellow-800">Attention needed</h3>
+                        <div className="mt-2 text-sm text-yellow-700">
+                          <p>
+                            You have {upcomingPayments.length} payment{upcomingPayments.length > 1 ? 's' : ''} due within the next 7 days:
+                          </p>
+                          <ul className="list-disc pl-5 mt-1 space-y-1">
+                            {upcomingPayments.map(payment => (
+                              <li key={payment.weekNumber}>
+                                Week {payment.weekNumber}: ₱{payment.amount.toLocaleString()} due on {formatDate(payment.dueDate)}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -448,7 +565,7 @@ export default function PaluwaganDetail() {
                 <p className="mt-1 text-sm text-gray-500">Track your weekly payments</p>
               </div>
               <div className="border-t border-gray-200">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-gray-200 table-fixed">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Week</th>
@@ -459,45 +576,58 @@ export default function PaluwaganDetail() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {paluwagan.weeklyPayments.map(payment => (
-                      <tr key={payment.weekNumber}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Week {payment.weekNumber}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(payment.dueDate)}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₱{payment.amount.toLocaleString()}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${payment.isPaid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                            {payment.isPaid ? 'Paid' : 'Unpaid'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {payment.isPaid ? (
-                            <button
-                              onClick={() => handleUnmarkPayment(payment.weekNumber)}
-                              className="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200"
-                            >
-                              <X className="h-4 w-4 mr-1" />
-                              Mark as Unpaid
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                if (accounts.length === 0) {
-                                  toast.error('Please create an account first');
-                                  return;
-                                }
-                                setModalType('payment');
-                                setSelectedWeek(payment.weekNumber);
-                                setIsModalOpen(true);
-                              }}
-                              className="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200"
-                            >
-                              <Check className="h-4 w-4 mr-1" />
-                              Mark as Paid
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                    {paluwagan.weeklyPayments.map(payment => {
+                      const isDueSoon = upcomingPayments.some(p => p.weekNumber === payment.weekNumber);
+                      return (
+                        <tr key={payment.weekNumber} className={isDueSoon ? 'bg-yellow-50' : ''}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Week {payment.weekNumber}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(payment.dueDate)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₱{payment.amount.toLocaleString()}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              payment.isPaid 
+                                ? 'bg-green-100 text-green-800 ring-1 ring-green-400' 
+                                : isDueSoon 
+                                  ? 'bg-yellow-100 text-yellow-800 ring-1 ring-yellow-400' 
+                                  : 'bg-red-100 text-red-800 ring-1 ring-red-400'
+                            }`}>
+                              {payment.isPaid 
+                                ? 'Paid' 
+                                : isDueSoon 
+                                  ? 'Due Soon' 
+                                  : 'Unpaid'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {payment.isPaid ? (
+                              <button
+                                onClick={() => handleUnmarkPayment(payment.weekNumber)}
+                                className="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200"
+                              >
+                                <X className="h-4 w-4 mr-1" />
+                                Mark as Unpaid
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  if (accounts.length === 0) {
+                                    toast.error('Please create an account first');
+                                    return;
+                                  }
+                                  setModalType('payment');
+                                  setSelectedWeek(payment.weekNumber);
+                                  setIsModalOpen(true);
+                                }}
+                                className="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200"
+                              >
+                                <Check className="h-4 w-4 mr-1" />
+                                Mark as Paid
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

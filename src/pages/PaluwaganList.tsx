@@ -1,9 +1,8 @@
-// src/pages/PaluwaganList.tsx
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getFirestore, collection, query, getDocs, orderBy } from 'firebase/firestore';
-import { Plus, Calendar, Users } from 'lucide-react';
+import { Plus, Calendar, Users, TrendingUp, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { Paluwagan } from '../types/paluwagan';
 
@@ -74,11 +73,55 @@ export default function PaluwaganList() {
     return upcomingNumbers.length > 0 ? upcomingNumbers[0] : null;
   }
 
+  function calculateProgressPercentage(paluwagan: Paluwagan) {
+    const totalWeeks = paluwagan.weeklyPayments.length;
+    if (totalWeeks === 0) return 0;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const currentWeekIndex = paluwagan.weeklyPayments.findIndex(payment => {
+      const dueDate = new Date(payment.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+      return dueDate >= today;
+    });
+    
+    const currentWeek = currentWeekIndex !== -1 ? currentWeekIndex : totalWeeks;
+    return Math.min(Math.round((currentWeek / totalWeeks) * 100), 100);
+  }
+
+  function getCurrentWeekPayment(paluwagan: Paluwagan) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return paluwagan.weeklyPayments.find(payment => {
+      const dueDate = new Date(payment.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+      const oneWeekAhead = new Date(today);
+      oneWeekAhead.setDate(oneWeekAhead.getDate() + 7);
+      
+      return dueDate >= today && dueDate <= oneWeekAhead && !payment.isPaid;
+    });
+  }
+
+  function calculateNetPosition(paluwagan: Paluwagan) {
+    const totalPaid = paluwagan.weeklyPayments
+      .filter(payment => payment.isPaid)
+      .reduce((sum, payment) => sum + payment.amount, 0);
+    
+    const totalReceived = paluwagan.numbers
+      .filter(num => num.isOwner && num.isPaid)
+      .reduce((sum) => sum + paluwagan.payoutPerNumber, 0);
+    
+    return totalReceived - totalPaid;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-lg">Loading your Paluwagan data...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-lg">Loading your Paluwagan data...</p>
         </div>
       </div>
     );
@@ -110,55 +153,112 @@ export default function PaluwaganList() {
             </div>
 
             {paluwagans.length > 0 ? (
-              <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                <ul className="divide-y divide-gray-200">
-                  {paluwagans.map((paluwagan) => {
-                    const nextPayout = calculateNextPayout(paluwagan);
-                    const myNumbers = paluwagan.numbers.filter(num => num.isOwner).length;
-                    const weeklyDue = paluwagan.amountPerNumber * myNumbers;
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                {paluwagans.map((paluwagan) => {
+                  const nextPayout = calculateNextPayout(paluwagan);
+                  const progressPercentage = calculateProgressPercentage(paluwagan);
+                  const currentWeekPayment = getCurrentWeekPayment(paluwagan);
+                  const myNumbers = paluwagan.numbers.filter(num => num.isOwner).length;
+                  const weeklyDue = paluwagan.amountPerNumber * myNumbers;
+                  const netPosition = calculateNetPosition(paluwagan);
+                  const isPositive = netPosition >= 0;
 
-                    return (
-                      <li key={paluwagan.id}>
-                        <Link to={`/paluwagan/${paluwagan.id}`} className="block hover:bg-gray-50">
-                          <div className="px-4 py-4 sm:px-6">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center">
-                                <p className="text-sm font-medium text-indigo-600 truncate">
-                                  {paluwagan.name}
-                                </p>
-                              </div>
-                              <div className="ml-2 flex-shrink-0 flex">
-                                <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                  {formatCurrency(paluwagan.payoutPerNumber)}
-                                </p>
-                              </div>
+                  return (
+                    <Link 
+                      to={`/paluwagan/${paluwagan.id}`} 
+                      className="block" 
+                      key={paluwagan.id}
+                    >
+                      <div className="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow duration-300">
+                        <div className="px-4 py-5 sm:p-6">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 bg-indigo-100 rounded-md p-3">
+                              <Users className="h-6 w-6 text-indigo-600" />
                             </div>
-                            <div className="mt-2 sm:flex sm:justify-between">
-                              <div className="sm:flex">
-                                <p className="flex items-center text-sm text-gray-500">
-                                  <Users className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                                  {myNumbers} number{myNumbers !== 1 ? 's' : ''} (
-                                  {formatCurrency(weeklyDue)} weekly)
-                                </p>
+                            <div className="ml-4">
+                              <h3 className="text-lg font-medium text-indigo-600 truncate">
+                                {paluwagan.name}
+                              </h3>
+                              <p className="text-sm text-gray-500">
+                                Started {formatDate(paluwagan.startDate)}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-4">
+                            <div className="relative pt-1">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-semibold text-indigo-600">Progress</span>
+                                <span className="text-xs font-semibold text-indigo-600">{progressPercentage}%</span>
                               </div>
-                              <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                                <Calendar className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                                <p>
-                                  Started {formatDate(paluwagan.startDate)}
-                                  {nextPayout && (
-                                    <span className="ml-2 text-indigo-600">
-                                      Next payout: {formatDate(nextPayout.payoutDate)}
-                                    </span>
-                                  )}
-                                </p>
+                              <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-indigo-100">
+                                <div 
+                                  style={{ width: `${progressPercentage}%` }} 
+                                  className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-500"
+                                ></div>
                               </div>
                             </div>
                           </div>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
+                          
+                          <div className="grid grid-cols-2 gap-4 mt-5">
+                            <div className="bg-gray-50 rounded-lg p-3">
+                              <p className="text-xs text-gray-500 uppercase">Weekly Due</p>
+                              <p className="text-lg font-semibold">{formatCurrency(weeklyDue)}</p>
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-3">
+                              <p className="text-xs text-gray-500 uppercase">Payout</p>
+                              <p className="text-lg font-semibold">{formatCurrency(paluwagan.payoutPerNumber)}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-5 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <Users className="h-4 w-4 text-gray-400 mr-1" />
+                                <span className="text-sm text-gray-600">
+                                  {myNumbers} number{myNumbers !== 1 ? 's' : ''}
+                                </span>
+                              </div>
+                              <div className={`flex items-center ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                                <TrendingUp className="h-4 w-4 mr-1" />
+                                <span className="text-sm font-medium">
+                                  {formatCurrency(Math.abs(netPosition))} {isPositive ? 'gain' : 'contributed'}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {nextPayout && (
+                              <div className="flex items-center justify-between">
+                                <Calendar className="h-4 w-4 text-gray-400 mr-1" />
+                                <span className="text-sm text-gray-600 flex-grow">Next payout</span>
+                                <span className="text-sm font-medium text-indigo-600">
+                                  {formatDate(nextPayout.payoutDate)}
+                                </span>
+                              </div>
+                            )}
+                            
+                            {currentWeekPayment && (
+                              <div className="flex items-center justify-between text-amber-600 bg-amber-50 p-2 rounded-md">
+                                <AlertCircle className="h-4 w-4 mr-1" />
+                                <span className="text-xs flex-grow">Payment due this week</span>
+                                <span className="text-xs font-medium">
+                                  {formatDate(currentWeekPayment.dueDate)}
+                                </span>
+                              </div>
+                            )}
+
+                            {!currentWeekPayment && (
+                              <div className="flex items-center justify-between text-green-600 bg-green-50 p-2 rounded-md">
+                                <CheckCircle2 className="h-4 w-4 mr-1" />
+                                <span className="text-xs">All payments up to date</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-12 bg-white shadow overflow-hidden sm:rounded-lg">

@@ -8,25 +8,25 @@ export interface PaluwaganNumber {
     accountId?: string;
   }
   
-  export interface WeeklyPayment {
-    weekNumber: number;
-    dueDate: Date;
-    isPaid: boolean;
-    amount: number;
-    accountId?: string;
-  }
-  
-  export interface Paluwagan {
-    id: string;
-    name: string;
-    amountPerNumber: number;
-    startDate: Date;
-    totalNumbers: number;
-    organizer: string;
-    payoutPerNumber: number;
-    description?: string;
-    numbers: PaluwaganNumber[];
-    weeklyPayments: WeeklyPayment[];
-    createdAt: Date;
-    updatedAt: Date;
-  }
+export interface WeeklyPayment {
+  weekNumber: number;
+  dueDate: Date;
+  isPaid: boolean;
+  amount: number;
+  accountId?: string;
+}
+
+export interface Paluwagan {
+  id: string;
+  name: string;
+  amountPerNumber: number;
+  startDate: Date;
+  totalNumbers: number;
+  organizer: string;
+  payoutPerNumber: number;
+  description?: string;
+  numbers: PaluwaganNumber[];
+  weeklyPayments: WeeklyPayment[];
+  createdAt: Date;
+  updatedAt: Date;
+}

@@ -43,6 +43,7 @@ interface Transaction {
 interface Account {
   id: string;
   name: string;
+  balance?: number;
 }
 
 export default function Transactions() {
@@ -129,6 +130,7 @@ export default function Transactions() {
         const accountsData = accountsSnapshot.docs.map((doc) => ({
           id: doc.id,
           name: doc.data().name,
+          balance: doc.data().balance,
         }));
 
         setAccounts(accountsData);
@@ -265,6 +267,27 @@ export default function Transactions() {
     }
   }
 
+  async function refreshAccounts(): Promise<Account[]> {
+    if (!currentUser) return [];
+    
+    try {
+      const accountsCollectionRef = collection(db, 'users', currentUser.uid, 'accounts');
+      const accountsSnapshot = await getDocs(accountsCollectionRef);
+
+      const accountsData = accountsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        name: doc.data().name,
+        balance: doc.data().balance || 0,
+      }));
+
+      setAccounts(accountsData);
+      return accountsData;
+    } catch (error) {
+      console.error('Error refreshing accounts:', error);
+      throw error;
+    }
+  }
+
   // Delete transaction and revert account balance
   async function handleDeleteTransaction(transactionId: string) {
     if (!window.confirm('Are you sure you want to revert this transaction?')) return;
@@ -292,6 +315,8 @@ export default function Transactions() {
 
       setTransactions((prev) => prev.filter((t) => t.id !== transactionId));
       toast.success('Transaction reverted successfully');
+
+      refreshAccounts();
     } catch (error) {
       console.error('Error reverting transaction:', error);
       toast.error('Failed to revert transaction');
@@ -316,11 +341,17 @@ export default function Transactions() {
       setModalError('Please select an account');
       return;
     }
+    if (!editingTransaction) {
+      setModalError('No transaction to edit');
+      return;
+    }
 
     try {
       setModalError('');
-      setLoading(true);
-
+      
+      // First refresh accounts to get the latest balances
+      const updatedAccounts = await refreshAccounts();
+      
       const newAmount = parseFloat(formData.amount);
       const newDate = new Date(formData.date);
       const [hours, minutes] = formData.time.split(':').map(Number);
@@ -336,14 +367,52 @@ export default function Transactions() {
         date: newDate,
       };
 
-      const originalTransaction = editingTransaction!;
+      const originalTransaction = editingTransaction;
 
+      // Calculate how much the balance will change
       const originalAdjustment =
         originalTransaction.type === 'income'
           ? -originalTransaction.amount
           : originalTransaction.amount;
       const newAdjustment = formData.type === 'income' ? newAmount : -newAmount;
 
+      // Check if this will cause a negative balance
+      if (formData.type === 'expense') {
+        // If it's the same account
+        if (originalTransaction.accountId === formData.accountId) {
+          const account = updatedAccounts.find(a => a.id === formData.accountId);
+          if (account) {
+            const currentBalance = account.balance || 0;
+            
+            // Calculate what the balance would be after the transaction
+            // For editing: first undo the original transaction (add back if it was expense)
+            // Then apply the new transaction (subtract if it's expense)
+            const originalAddBack = originalTransaction.type === 'expense' ? originalTransaction.amount : 0;
+            const newSubtract = formData.type === 'expense' ? newAmount : 0;
+            
+            const resultingBalance = currentBalance + originalAddBack - newSubtract;
+            
+            if (resultingBalance < 0) {
+              setModalError(`This expense would exceed the current balance of ${formatAmount(currentBalance)}. Please reduce the amount or choose a different account.`);
+              return;
+            }
+          }
+        } else {
+          // If it's a different account, just check the new account's balance
+          const newAccount = updatedAccounts.find(a => a.id === formData.accountId);
+          if (newAccount) {
+            const newAccountBalance = newAccount.balance || 0;
+            
+            if (newAccountBalance < newAmount) {
+              setModalError(`This expense would exceed the balance of ${newAccount.name} (${formatAmount(newAccountBalance)}). Please reduce the amount or choose a different account.`);
+              return;
+            }
+          }
+        }
+      }
+
+      setLoading(true);
+      
       const batch = writeBatch(db);
 
       const originalAccountRef = doc(
@@ -368,7 +437,7 @@ export default function Transactions() {
         'users',
         currentUser!.uid,
         'transactions',
-        editingTransaction!.id
+        editingTransaction.id
       );
       batch.update(transactionRef, updatedTransaction);
 
@@ -376,11 +445,14 @@ export default function Transactions() {
 
       setTransactions((prev) =>
         prev.map((t) =>
-          t.id === editingTransaction!.id ? { ...t, ...updatedTransaction } : t
+          t.id === editingTransaction.id ? { ...t, ...updatedTransaction } : t
         )
       );
       setEditingTransaction(null);
       toast.success('Transaction updated successfully');
+      
+      // Refresh accounts after the operation
+      refreshAccounts();
     } catch (error) {
       console.error('Error updating transaction:', error);
       setModalError('Failed to update transaction');

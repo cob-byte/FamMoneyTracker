@@ -25,7 +25,8 @@ import {
   ChevronRight, 
   CreditCard, 
   Edit,
-  Trash2
+  Trash2,
+  Wallet, Building, DollarSign, Smartphone
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Sidebar from '../components/Sidebar';
@@ -69,6 +70,21 @@ export default function AccountDetail() {
   const incomeCategories = [
     'Salary', 'Bonus', 'Refund', 'Gift', 'Interest', 'Investment', 'Other'
   ];
+
+  function getAccountIcon(accountType: string) {
+    switch(accountType) {
+      case 'cash':
+        return <DollarSign className="h-8 w-8 text-indigo-600 mr-3" />;
+      case 'bank':
+        return <Building className="h-8 w-8 text-indigo-600 mr-3" />;
+      case 'credit':
+        return <CreditCard className="h-8 w-8 text-indigo-600 mr-3" />;
+      case 'ewallet':
+        return <Smartphone className="h-8 w-8 text-indigo-600 mr-3" />;
+      default:
+        return <Wallet className="h-8 w-8 text-indigo-600 mr-3" />;
+    }
+  }
 
   useEffect(() => {
     async function fetchUserDataAndAccount() {
@@ -189,8 +205,17 @@ export default function AccountDetail() {
       const { type, amount } = transaction;
       const batch = writeBatch(db);
 
-      const accountRef = doc(db, 'users', currentUser!.uid, 'accounts', accountId!);
+      // Check if deleting this transaction would result in a negative balance
       const adjustment = type === 'income' ? -amount : amount;
+      const newBalance = (account?.balance || 0) + adjustment;
+      
+      // If we're deleting an income transaction and it would cause a negative balance
+      if (type === 'income' && newBalance < 0) {
+        toast.error('Cannot revert this transaction: it would result in a negative balance');
+        return;
+      }
+
+      const accountRef = doc(db, 'users', currentUser!.uid, 'accounts', accountId!);
       batch.update(accountRef, { balance: increment(adjustment) });
 
       const transactionRef = doc(db, 'users', currentUser!.uid, 'transactions', transactionId);
@@ -244,10 +269,19 @@ export default function AccountDetail() {
         : originalTransaction.amount;
       const newAdjustment = formData.type === 'income' ? newAmount : -newAmount;
 
+      const totalAdjustment = originalAdjustment + newAdjustment;
+      const newBalance = (account?.balance || 0) + totalAdjustment;
+      
+      // Check if the updated transaction would result in a negative balance
+      if (newBalance < 0) {
+        setModalError(`This expense would exceed the current balance of ${formatAmount(account?.balance || 0)}. Please reduce the amount or choose a different account.`);
+        setLoading(false);
+        return;
+      }
+
       const batch = writeBatch(db);
 
       const accountRef = doc(db, 'users', currentUser!.uid, 'accounts', accountId!);
-      const totalAdjustment = originalAdjustment + newAdjustment;
       batch.update(accountRef, { balance: increment(totalAdjustment) });
 
       const transactionRef = doc(db, 'users', currentUser!.uid, 'transactions', editingTransaction!.id);
@@ -349,7 +383,7 @@ export default function AccountDetail() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div>
                         <div className="flex items-center">
-                          <CreditCard className="h-8 w-8 text-indigo-600 mr-3" />
+                          {getAccountIcon(account.type)}
                           <div>
                             <div className="text-sm font-medium text-gray-500">{getAccountTypeName(account.type)}</div>
                             <div className="text-lg font-medium">{account.name}</div>

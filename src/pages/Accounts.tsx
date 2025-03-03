@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getFirestore, collection, getDocs, doc, getDoc } from 'firebase/firestore';
-import { CreditCard, Clock, PlusCircle, ArrowRight, AlertCircle } from 'lucide-react';
+import { CreditCard, Clock, PlusCircle, ArrowRight, AlertCircle, Wallet, Building, DollarSign, Smartphone  } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { Account } from '../types/account';
 
@@ -22,10 +22,20 @@ export default function Accounts() {
     EUR: '€'
   };
 
-  // Account type icons (using the same icon for all types for simplicity)
-  const getAccountTypeIcon = () => {
-    return <CreditCard className="h-6 w-6 text-indigo-600" />;
-  };
+  function getAccountIcon(accountType: string) {
+    switch(accountType) {
+      case 'cash':
+        return <DollarSign className="h-6 w-6 text-indigo-600" />;
+      case 'bank':
+        return <Building className="h-6 w-6 text-indigo-600" />;
+      case 'credit':
+        return <CreditCard className="h-6 w-6 text-indigo-600" />;
+      case 'ewallet':
+        return <Smartphone className="h-6 w-6 text-indigo-600" />;
+      default:
+        return <Wallet className="h-6 w-6 text-indigo-600" />;
+    }
+  }
 
   useEffect(() => {
     async function fetchUserDataAndAccounts() {
@@ -137,7 +147,7 @@ export default function Accounts() {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
                               <div className="flex-shrink-0 bg-indigo-100 rounded-md p-2">
-                                {getAccountTypeIcon()}
+                                {getAccountIcon(account.type)}
                               </div>
                               <div className="ml-4">
                                 <p className="text-sm font-medium text-indigo-600">{account.name}</p>

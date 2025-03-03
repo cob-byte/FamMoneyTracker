@@ -2,17 +2,16 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getFirestore, collection, query, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
-import { AlertCircle, PlusCircle, MinusCircle, CreditCard, Clock, Users } from 'lucide-react';
+import { AlertCircle, PlusCircle, MinusCircle, CreditCard, Clock, Wallet, Building, DollarSign, Smartphone } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { Account, Transaction } from '../types/account';
-import { Paluwagan } from '../types/paluwagan'
+import DashboardPaluwaganPreview from '../components/DashboardPaluwaganPreview';
 
 export default function Dashboard() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [paluwagans, setPaluwagans] = useState<Paluwagan[]>([]);
   const [totalBalance, setTotalBalance] = useState(0);
   const [currency, setCurrency] = useState('PHP');
   const { currentUser } = useAuth();
@@ -78,32 +77,6 @@ export default function Dashboard() {
         
         setTransactions(transactionsData);
         
-        // Fetch paluwagans
-        const paluwagansCollectionRef = collection(db, 'users', currentUser.uid, 'paluwagans');
-        const paluwagansQuery = query(paluwagansCollectionRef);
-        const paluwagansSnapshot = await getDocs(paluwagansQuery);
-        
-        const paluwagansData = paluwagansSnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            name: data.name,
-            startDate: data.startDate?.toDate(),
-            amountPerNumber: data.amountPerNumber,
-            payoutPerNumber: data.payoutPerNumber,
-            numbers: data.numbers?.map((num: any) => ({
-              ...num,
-              payoutDate: num.payoutDate?.toDate()
-            })),
-            weeklyPayments: data.weeklyPayments?.map((payment: any) => ({
-              ...payment,
-              dueDate: payment.dueDate?.toDate()
-            }))
-          } as Paluwagan;
-        });
-        
-        setPaluwagans(paluwagansData);
-        
         setLoading(false);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -135,6 +108,22 @@ export default function Dashboard() {
       return <PlusCircle className="h-5 w-5 text-green-500" />;
     } else {
       return <MinusCircle className="h-5 w-5 text-red-500" />;
+    }
+  }
+
+  // Get account icon based on account type
+  function getAccountIcon(accountType: string) {
+    switch(accountType) {
+      case 'cash':
+        return <DollarSign className="h-6 w-6 text-indigo-600" />;
+      case 'bank':
+        return <Building className="h-6 w-6 text-indigo-600" />;
+      case 'credit':
+        return <CreditCard className="h-6 w-6 text-indigo-600" />;
+      case 'ewallet':
+        return <Smartphone className="h-6 w-6 text-indigo-600" />;
+      default:
+        return <Wallet className="h-6 w-6 text-indigo-600" />;
     }
   }
 
@@ -199,7 +188,7 @@ export default function Dashboard() {
                     <div className="px-4 py-5 sm:p-6">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 bg-indigo-100 rounded-md p-3">
-                          <CreditCard className="h-6 w-6 text-indigo-600" />
+                          {getAccountIcon(account.type)}
                         </div>
                         <div className="ml-5 w-0 flex-1">
                           <dl>
@@ -224,67 +213,7 @@ export default function Dashboard() {
             </div>
             
             {/* Paluwagan Section */}
-            {paluwagans.length > 0 && (
-              <div className="mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium leading-6 text-gray-900">Your Paluwagan</h3>
-                  <Link
-                    to="/paluwagan"
-                    className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
-                  >
-                    View all
-                  </Link>
-                </div>
-                
-                <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                  <ul className="divide-y divide-gray-200">
-                    {paluwagans.slice(0, 3).map((paluwagan) => {
-                      const userNumbers = paluwagan.numbers.filter(num => num.isOwner);
-                      const nextPayout = userNumbers
-                        .filter(num => !num.isPaid && num.payoutDate > new Date())
-                        .sort((a, b) => a.payoutDate.getTime() - b.payoutDate.getTime())[0];
-                      
-                      return (
-                        <li key={paluwagan.id}>
-                          <Link to={`/paluwagan/${paluwagan.id}`} className="block hover:bg-gray-50">
-                            <div className="px-4 py-4 sm:px-6">
-                              <div className="flex items-center justify-between">
-                                <div className="text-sm font-medium text-indigo-600 truncate">
-                                  {paluwagan.name}
-                                </div>
-                                <div className="ml-2 flex-shrink-0 flex">
-                                  <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                    {formatAmount(paluwagan.payoutPerNumber)}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="mt-2 flex justify-between">
-                                <div className="flex items-center text-sm text-gray-500">
-                                  <Users className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                                  {userNumbers.length} number{userNumbers.length !== 1 ? 's' : ''} 
-                                </div>
-                                {nextPayout && (
-                                  <div className="flex items-center text-sm text-indigo-600">
-                                    <Clock className="flex-shrink-0 mr-1.5 h-5 w-5 text-indigo-500" />
-                                    Next payout: {formatDate(nextPayout.payoutDate)}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </Link>
-                        </li>
-                      );
-                    })}
-                    
-                    {paluwagans.length === 0 && (
-                      <li className="px-4 py-5 sm:px-6 text-center text-gray-500">
-                        No Paluwagan yet
-                      </li>
-                    )}
-                  </ul>
-                </div>
-              </div>
-            )}
+            <DashboardPaluwaganPreview />
 
             {/* Debt Section */}
             <div className="mb-6">
