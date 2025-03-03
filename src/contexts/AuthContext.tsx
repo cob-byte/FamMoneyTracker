@@ -7,14 +7,11 @@ import {
   sendPasswordResetEmail,
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   User,
   UserCredential
 } from 'firebase/auth';
 import { auth } from '../firebase/config';
 import LoadingScreen from '../components/LoadingScreen';
-import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -24,7 +21,6 @@ interface AuthContextType {
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   signInWithGoogle: () => Promise<UserCredential>;
-  signInWithGoogleRedirect: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -44,7 +40,6 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   function signup(email: string, password: string) {
     return createUserWithEmailAndPassword(auth, email, password);
@@ -62,37 +57,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return sendPasswordResetEmail(auth, email);
   }
 
-  function signInWithGoogle() {
+  // Using popup method for all devices
+  async function signInWithGoogle() {
     const provider = new GoogleAuthProvider();
+    // Add scopes if needed
+    provider.addScope('profile');
+    provider.addScope('email');
+    
+    // Always use popup, even on mobile
     return signInWithPopup(auth, provider);
   }
 
-  function signInWithGoogleRedirect() {
-    const provider = new GoogleAuthProvider();
-    return signInWithRedirect(auth, provider);
-  }
-
   useEffect(() => {
+    // Handle auth state changes
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       setLoading(false);
     });
 
-    // Handle redirect result on page load
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result) {
-          console.log("User signed in via redirect:", result.user);
-          // Navigate to dashboard after successful redirect sign-in
-          navigate('/dashboard');
-        }
-      })
-      .catch((error) => {
-        console.error("Redirect sign-in error:", error);
-      });
-
     return unsubscribe;
-  }, [navigate]);
+  }, []);
 
   const value = {
     currentUser,
@@ -101,8 +85,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     login,
     logout,
     resetPassword,
-    signInWithGoogle,
-    signInWithGoogleRedirect
+    signInWithGoogle
   };
 
   return (
