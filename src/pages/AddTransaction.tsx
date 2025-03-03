@@ -5,6 +5,7 @@ import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, getDoc } fro
 import { AlertCircle, ArrowLeft } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Sidebar from '../components/Sidebar';
+import { Account } from '../types/account';
 
 export default function AddTransaction() {
   // Extract query parameters from URL
@@ -18,7 +19,7 @@ export default function AddTransaction() {
   const [category, setCategory] = useState('');
   const [accountId, setAccountId] = useState(urlAccountId || '');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [accounts, setAccounts] = useState([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [currency, setCurrency] = useState('PHP');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -74,7 +75,7 @@ export default function AddTransaction() {
         const accountsData = accountsSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
-        }));
+        })) as Account[];
         
         setAccounts(accountsData);
         
@@ -94,7 +95,7 @@ export default function AddTransaction() {
     }
     
     fetchUserDataAndAccounts();
-  }, [currentUser, db, urlAccountId]);
+  }, [currentUser, db, urlAccountId, accountId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
