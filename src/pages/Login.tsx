@@ -43,7 +43,7 @@ export default function Login() {
         </div>
         <h2 className="text-xl font-bold text-gray-800">Welcome Eusebio Fam</h2>
         <p className="text-sm text-center text-gray-600 mt-1 px-4">
-          Dito kayo mag track ng mga pera niyo. Expenses or income, ipasok niyo na! para di kayo one day millionaire!
+          Dito na kayo mag-track ng pera niyo, Eusebio fam! Expenses, income, paluwagan, debts, accounts, at transactions—lahat nasa isang lugar. Iwasan ang "one day millionaire" vibe. Simulan nang ayusin ang finances niyo ngayon!
         </p>
       </div>
       
@@ -58,7 +58,7 @@ export default function Login() {
         </div>
         <h2 className="mt-6 text-3xl font-bold text-gray-800 text-center">Welcome Eusebio Fam</h2>
         <p className="mt-4 text-center text-gray-600 max-w-sm leading-relaxed">
-          Dito na kayo mag-track ng pera niyo, Eusebio fam! Expenses, income, paluwagan, debts, accounts, at transactions—lahat nasa isang lugar. Iwasan ang "one day millionaire" vibe; simulan nang ayusin ang finances niyo ngayon!
+          Dito na kayo mag-track ng pera niyo, Eusebio fam! Expenses, income, paluwagan, debts, accounts, at transactions—lahat nasa isang lugar. Iwasan ang "one day millionaire" vibe. Simulan nang ayusin ang finances niyo ngayon!
         </p>
       </div>
       
