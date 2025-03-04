@@ -117,8 +117,8 @@ export default function CreateDebt() {
               </h1>
             </div>
             <div className="bg-white shadow rounded-lg">
-              <form onSubmit={handleSubmit} className="p-6">
-                {error && <div className="mb-4 p-4 text-sm text-red-700 bg-red-100 rounded-lg">{error}</div>}
+              <form onSubmit={handleSubmit} className="space-y-6 p-6">
+                {error && <div className="p-4 text-sm text-red-700 bg-red-100 rounded-lg">{error}</div>}
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Type</label>
@@ -146,14 +146,16 @@ export default function CreateDebt() {
                     </div>
                   </div>
                   <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">Debt Name</label>
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                      Debt Name
+                    </label>
                     <input
                       type="text"
                       id="name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
-                      className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500"
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     />
                   </div>
                   <div>
@@ -166,21 +168,41 @@ export default function CreateDebt() {
                       value={counterpartyName}
                       onChange={(e) => setCounterpartyName(e.target.value)}
                       required
-                      className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500"
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     />
                   </div>
                   <div>
-                    <label htmlFor="totalAmount" className="block text-sm font-medium text-gray-700">Total Amount (PHP)</label>
-                    <input
-                      type="number"
-                      id="totalAmount"
-                      value={totalAmount}
-                      onChange={(e) => setTotalAmount(e.target.value)}
-                      required
-                      min="1"
-                      step="0.01"
-                      className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
+                    <label htmlFor="totalAmount" className="block text-sm font-medium text-gray-700">
+                      Total Amount (PHP)
+                    </label>
+                    <div className="mt-1 relative rounded-md shadow-sm">
+                      <input
+                        type="number"
+                        id="totalAmount"
+                        value={totalAmount}
+                        onChange={(e) => setTotalAmount(e.target.value)}
+                        required
+                        min="1"
+                        step="0.01"
+                        className="block w-full pr-20 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => setTotalAmount((prev) => Math.max(1, parseFloat(prev || '0') - 1).toFixed(2))}
+                          className="h-full px-2 text-gray-500 hover:text-gray-700 border-l border-gray-300"
+                        >
+                          -
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setTotalAmount((prev) => (parseFloat(prev || '0') + 1).toFixed(2))}
+                          className="h-full px-2 text-gray-500 hover:text-gray-700 border-l border-gray-300"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Payment Type</label>
@@ -209,20 +231,24 @@ export default function CreateDebt() {
                   </div>
                   {paymentType === 'single' ? (
                     <div>
-                      <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700">Due Date</label>
+                      <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700">
+                        Due Date
+                      </label>
                       <input
                         type="date"
                         id="dueDate"
                         value={dueDate}
                         onChange={(e) => setDueDate(e.target.value)}
                         required
-                        className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                       />
                     </div>
                   ) : (
                     <>
                       <div>
-                        <label htmlFor="numberOfPayments" className="block text-sm font-medium text-gray-700">Number of Payments</label>
+                        <label htmlFor="numberOfPayments" className="block text-sm font-medium text-gray-700">
+                          Number of Payments
+                        </label>
                         <input
                           type="number"
                           id="numberOfPayments"
@@ -230,47 +256,51 @@ export default function CreateDebt() {
                           onChange={(e) => setNumberOfPayments(e.target.value)}
                           required
                           min="2"
-                          className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         />
                       </div>
                       <div>
-                        <label htmlFor="frequency" className="block text-sm font-medium text-gray-700">Frequency</label>
+                        <label htmlFor="frequency" className="block text-sm font-medium text-gray-700">
+                          Frequency
+                        </label>
                         <select
                           id="frequency"
                           value={frequency}
                           onChange={(e) => setFrequency(e.target.value as 'weekly' | 'monthly')}
-                          className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         >
                           <option value="weekly">Weekly</option>
                           <option value="monthly">Monthly</option>
                         </select>
                       </div>
                       <div>
-                        <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">Start Date</label>
+                        <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
+                          Start Date
+                        </label>
                         <input
                           type="date"
                           id="startDate"
                           value={startDate}
                           onChange={(e) => setStartDate(e.target.value)}
                           required
-                          className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         />
                       </div>
                     </>
                   )}
                 </div>
-                <div className="mt-6 flex justify-end space-x-3">
+                <div className="flex justify-end space-x-3">
                   <button
                     type="button"
                     onClick={() => navigate('/debt')}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                    className="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-4 py-2 border border-transparent rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+                    className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                   >
                     {loading ? 'Creating...' : 'Create Debt'}
                   </button>

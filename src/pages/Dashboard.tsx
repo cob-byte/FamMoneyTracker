@@ -128,6 +128,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
           <p className="text-lg">Loading your financial data...</p>
         </div>
       </div>
@@ -195,7 +196,7 @@ export default function Dashboard() {
                             </div>
                             <div className="ml-4">
                               <div className="text-sm font-medium text-gray-900">{transaction.description}</div>
-                              <div className="flex text-sm text-gray-500">
+                              <div className="flex text-sm text-gray-500 items-center">
                                 <Clock className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
                                 <span>{formatDate(transaction.date)}</span>
                               </div>

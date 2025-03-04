@@ -1,30 +1,39 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Mail, Lock, AlertCircle, Check } from 'lucide-react';
+import { UserPlus, Mail, Lock, AlertCircle, Check, X, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
 
+  // Password validation rules
+  const hasMinLength = password.length >= 6;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const isPasswordStrong = hasMinLength && hasUppercase && hasNumber;
+  const passwordsMatch = password === confirmPassword && password !== '';
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (password !== confirmPassword) {
+    if (!passwordsMatch) {
       setError('Passwords do not match');
       toast.error('Passwords do not match');
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      toast.error('Password must be at least 6 characters');
+    if (!isPasswordStrong) {
+      setError('Password does not meet all requirements');
+      toast.error('Password does not meet all requirements');
       return;
     }
 
@@ -32,8 +41,8 @@ export default function Register() {
       setError('');
       setLoading(true);
       await signup(email, password);
-      toast.success('Account created successfully!');
-      navigate('/dashboard');
+      toast.success('Account created successfully! Please log in.');
+      navigate('/login');
     } catch (error) {
       setError('Failed to create an account. Email may already be in use.');
       toast.error('Failed to create an account. Email may already be in use.');
@@ -48,18 +57,18 @@ export default function Register() {
       {/* Mobile Header - Visible only on mobile */}
       <div className="md:hidden w-full bg-white p-4 shadow-md flex flex-col items-center">
         <div className="w-20 h-20 rounded-full overflow-hidden mb-2">
-          <img 
-            src="fam.jpg" 
-            alt="Family Logo" 
+          <img
+            src="finance.jpg"
+            alt="Financial management illustration"
             className="w-full h-full object-cover"
           />
         </div>
-        <h2 className="text-xl font-bold text-gray-800">Join Na</h2>
+        <h2 className="text-xl font-bold text-gray-800">Master Your Money</h2>
         <p className="text-sm text-center text-gray-600 mt-1 px-4">
-          Create an account, login and track your expenses. Wag ka na mag dalawang isip!
+          Sign up to track your expenses, income, debts, and more—all in one place. Start building a stronger financial future today.
         </p>
       </div>
-      
+
       {/* Registration Form Section - Left Side */}
       <div className="w-full md:w-1/2 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 order-2 md:order-1">
         <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl">
@@ -71,10 +80,10 @@ export default function Register() {
             </div>
             <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Create Account</h2>
             <p className="mt-2 text-sm text-gray-600">
-              Join the family in tracking expenses
+              Start managing your finances today
             </p>
           </div>
-          
+
           {error && (
             <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
               <div className="flex items-center">
@@ -83,7 +92,7 @@ export default function Register() {
               </div>
             </div>
           )}
-          
+
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4">
               <div>
@@ -118,14 +127,21 @@ export default function Register() {
                   <input
                     id="password"
                     name="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     autoComplete="new-password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="appearance-none block w-full px-3 py-3 pl-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                    className="appearance-none block w-full px-3 py-3 pl-10 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                     placeholder="••••••••"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
                 </div>
               </div>
               <div>
@@ -139,25 +155,63 @@ export default function Register() {
                   <input
                     id="confirm-password"
                     name="confirm-password"
-                    type="password"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     autoComplete="new-password"
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="appearance-none block w-full px-3 py-3 pl-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                    className="appearance-none block w-full px-3 py-3 pl-10 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                     placeholder="••••••••"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <Check className="h-5 w-5 text-green-500" />
+            <div className="space-y-1">
+              {!isPasswordStrong ? (
+                <>
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      {hasMinLength ? <Check className="h-4 w-4 text-green-500" /> : <X className="h-4 w-4 text-red-500" />}
+                    </div>
+                    <p className="ml-2 text-xs text-gray-500">At least 6 characters</p>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      {hasUppercase ? <Check className="h-4 w-4 text-green-500" /> : <X className="h-4 w-4 text-red-500" />}
+                    </div>
+                    <p className="ml-2 text-xs text-gray-500">Contains an uppercase letter</p>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      {hasNumber ? <Check className="h-4 w-4 text-green-500" /> : <X className="h-4 w-4 text-red-500" />}
+                    </div>
+                    <p className="ml-2 text-xs text-gray-500">Contains a number</p>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center animate-fade-in">
+                  <div className="flex-shrink-0">
+                    <Check className="h-4 w-4 text-green-500" />
+                  </div>
+                  <p className="ml-2 text-xs text-gray-500">Password meets requirements</p>
                 </div>
-                <p className="ml-2 text-xs text-gray-500">Password must be at least 6 characters</p>
-              </div>
+              )}
+              {isPasswordStrong && (
+                <div className="flex items-center animate-fade-in">
+                  <div className="flex-shrink-0">
+                    {passwordsMatch ? <Check className="h-4 w-4 text-green-500" /> : <X className="h-4 w-4 text-red-500" />}
+                  </div>
+                  <p className="ml-2 text-xs text-gray-500">Passwords match</p>
+                </div>
+              )}
             </div>
 
             <div>
@@ -177,7 +231,7 @@ export default function Register() {
                 ) : 'Sign up'}
               </button>
             </div>
-            
+
             <div className="text-center">
               <p className="text-sm text-gray-600">
                 Already have an account?{' '}
@@ -189,19 +243,19 @@ export default function Register() {
           </form>
         </div>
       </div>
-      
-      {/* Logo Section - Right Side */}
+
+      {/* Right Side - Visible on medium screens and above */}
       <div className="hidden md:flex md:w-1/2 bg-white flex-col items-center justify-center p-10 shadow-2xl z-10 order-1 md:order-2">
-        <div className="w-80 h-80 bg-gray-200 rounded-full overflow-hidden shadow-lg">
-          <img 
-            src="fam.jpg" 
-            alt="Family Logo" 
+        <div className="w-80 h-80 rounded-full overflow-hidden shadow-lg">
+          <img
+            src="finance.jpg"
+            alt="Financial management illustration"
             className="w-full h-full object-cover"
           />
         </div>
-        <h2 className="mt-6 text-3xl font-bold text-gray-800 text-center">Join Na</h2>
+        <h2 className="mt-6 text-3xl font-bold text-gray-800 text-center">Master Your Money</h2>
         <p className="mt-4 text-center text-gray-600 max-w-sm leading-relaxed">
-          Create an account, login and track your expenses. Wag ka na mag dalawang isip!
+          Sign up to track your expenses, income, debts, and more—all in one place. Start building a stronger financial future today.
         </p>
       </div>
     </div>

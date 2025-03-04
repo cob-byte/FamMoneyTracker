@@ -284,7 +284,7 @@ export default function EditDebt() {
             )}
             
             <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-              <form onSubmit={handleSubmit} className="p-6">
+              <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Type</label>
@@ -311,7 +311,6 @@ export default function EditDebt() {
                       </label>
                     </div>
                   </div>
-                  
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                       Debt Name
@@ -325,7 +324,6 @@ export default function EditDebt() {
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     />
                   </div>
-                  
                   <div>
                     <label htmlFor="counterpartyName" className="block text-sm font-medium text-gray-700">
                       {formData.type === 'owe' ? 'Lender Name' : 'Borrower Name'}
@@ -339,24 +337,42 @@ export default function EditDebt() {
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     />
                   </div>
-                  
                   <div>
                     <label htmlFor="totalAmount" className="block text-sm font-medium text-gray-700">
                       Total Amount (PHP)
                     </label>
-                    <input
-                      type="number"
-                      id="totalAmount"
-                      value={formData.totalAmount}
-                      onChange={(e) => setFormData(prev => ({ ...prev, totalAmount: parseFloat(e.target.value) }))}
-                      required
-                      min="1"
-                      step="0.01"
-                      readOnly={!canEditFinancial}
-                      className={`mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${!canEditFinancial ? 'bg-gray-100' : ''}`}
-                    />
+                    <div className="mt-1 relative rounded-md shadow-sm">
+                      <input
+                        type="number"
+                        id="totalAmount"
+                        value={formData.totalAmount}
+                        onChange={(e) => setFormData(prev => ({ ...prev, totalAmount: parseFloat(e.target.value) }))}
+                        required
+                        min="1"
+                        step="0.01"
+                        readOnly={!canEditFinancial}
+                        className={`block w-full pr-20 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${!canEditFinancial ? 'bg-gray-100' : ''}`}
+                      />
+                      {canEditFinancial && (
+                        <div className="absolute inset-y-0 right-0 flex items-center">
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, totalAmount: Math.max(0, prev.totalAmount - 1) }))}
+                            className="h-full px-2 text-gray-500 hover:text-gray-700 border-l border-gray-300"
+                          >
+                            -
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, totalAmount: prev.totalAmount + 1 }))}
+                            className="h-full px-2 text-gray-500 hover:text-gray-700 border-l border-gray-300"
+                          >
+                            +
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  
                   {canEditFinancial && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Payment Type</label>
@@ -384,7 +400,6 @@ export default function EditDebt() {
                       </div>
                     </div>
                   )}
-                  
                   {canEditFinancial && formData.paymentType === 'single' && (
                     <div>
                       <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700">Due Date</label>
@@ -398,20 +413,37 @@ export default function EditDebt() {
                       />
                     </div>
                   )}
-                  
                   {canEditFinancial && formData.paymentType === 'multiple' && (
                     <>
                       <div>
                         <label htmlFor="numberOfPayments" className="block text-sm font-medium text-gray-700">Number of Payments</label>
-                        <input
-                          type="number"
-                          id="numberOfPayments"
-                          value={formData.numberOfPayments}
-                          onChange={(e) => setFormData(prev => ({ ...prev, numberOfPayments: parseInt(e.target.value) }))}
-                          required
-                          min="2"
-                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        />
+                        <div className="mt-1 relative rounded-md shadow-sm">
+                          <input
+                            type="number"
+                            id="numberOfPayments"
+                            value={formData.numberOfPayments}
+                            onChange={(e) => setFormData(prev => ({ ...prev, numberOfPayments: parseInt(e.target.value) }))}
+                            required
+                            min="2"
+                            className="block w-full pr-20 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                          />
+                          <div className="absolute inset-y-0 right-0 flex items-center">
+                            <button
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, numberOfPayments: Math.max(2, prev.numberOfPayments - 1) }))}
+                              className="h-full px-2 text-gray-500 hover:text-gray-700 border-l border-gray-300"
+                            >
+                              -
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, numberOfPayments: prev.numberOfPayments + 1 }))}
+                              className="h-full px-2 text-gray-500 hover:text-gray-700 border-l border-gray-300"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
                       </div>
                       <div>
                         <label htmlFor="frequency" className="block text-sm font-medium text-gray-700">Frequency</label>
@@ -439,43 +471,42 @@ export default function EditDebt() {
                     </>
                   )}
                 </div>
-                
-                <div className="mt-6 flex flex-col sm:flex-row justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
                   <div>
                     {!deleteConfirm ? (
                       <button
                         type="button"
                         onClick={() => setDeleteConfirm(true)}
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200"
+                        className="inline-flex items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete Debt
                       </button>
                     ) : (
-                      <div className="flex space-x-2">
+                      <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
                         <button
                           type="button"
                           onClick={handleDeleteDebt}
                           disabled={updating}
-                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
+                          className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 w-full sm:w-auto"
                         >
                           Confirm Delete
                         </button>
                         <button
                           type="button"
                           onClick={() => setDeleteConfirm(false)}
-                          className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                          className="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-full sm:w-auto"
                         >
                           Cancel
                         </button>
                       </div>
                     )}
                   </div>
-                  <div className="mt-4 sm:mt-0">
+                  <div>
                     <button
                       type="submit"
                       disabled={updating}
-                      className="inline-flex justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+                      className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 w-full sm:w-auto"
                     >
                       {updating ? 'Saving...' : 'Save Changes'}
                     </button>

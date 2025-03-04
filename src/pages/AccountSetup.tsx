@@ -167,7 +167,7 @@ export default function AccountSetup() {
                 name="currency"
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               >
                 {currencies.map((curr) => (
                   <option key={curr.code} value={curr.code}>
@@ -176,7 +176,6 @@ export default function AccountSetup() {
                 ))}
               </select>
             </div>
-            
             <div>
               <label htmlFor="account-name" className="block text-sm font-medium text-gray-700">
                 Account Name
@@ -188,11 +187,10 @@ export default function AccountSetup() {
                 required
                 value={accountName}
                 onChange={(e) => setAccountName(e.target.value)}
-                className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 placeholder="e.g., Wallet, BDO Savings, GCash"
               />
             </div>
-            
             <div>
               <label htmlFor="account-type" className="block text-sm font-medium text-gray-700">
                 Account Type
@@ -202,7 +200,7 @@ export default function AccountSetup() {
                 name="account-type"
                 value={accountType}
                 onChange={(e) => setAccountType(e.target.value)}
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               >
                 {accountTypes.map((type) => (
                   <option key={type.id} value={type.id}>
@@ -211,34 +209,48 @@ export default function AccountSetup() {
                 ))}
               </select>
             </div>
-            
             <div>
-                <label htmlFor="initial-balance" className="block text-sm font-medium text-gray-700">
-                    Initial Balance
-                </label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-gray-500 sm:text-sm">{getCurrentCurrencySymbol()}</span>
-                    </div>
-                    <input
-                    id="initial-balance"
-                    name="initial-balance"
-                    type="number"
-                    step="0.01"
-                    value={initialBalance}
-                    onChange={(e) => setInitialBalance(e.target.value)}
-                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 sm:text-sm border-gray-300 rounded-md"
-                    placeholder="0.00"
-                    />
+              <label htmlFor="initial-balance" className="block text-sm font-medium text-gray-700">
+                Initial Balance
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-500 sm:text-sm">{getCurrentCurrencySymbol()}</span>
                 </div>
+                <input
+                  id="initial-balance"
+                  name="initial-balance"
+                  type="number"
+                  step="0.01"
+                  value={initialBalance}
+                  onChange={(e) => setInitialBalance(e.target.value)}
+                  className="block w-full pl-10 pr-20 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="0.00"
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => setInitialBalance((prev) => Math.max(0, parseFloat(prev || '0') - 1).toFixed(2))}
+                    className="h-full px-2 text-gray-500 hover:text-gray-700 border-l border-gray-300"
+                  >
+                    -
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInitialBalance((prev) => (parseFloat(prev || '0') + 1).toFixed(2))}
+                    className="h-full px-2 text-gray-500 hover:text-gray-700 border-l border-gray-300"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-
           <div>
             <button
               type="submit"
               disabled={loading}
-              className="cursor-pointer group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
             >
               {loading ? 'Setting up...' : 'Complete Setup'}
             </button>

@@ -254,6 +254,9 @@ export default function DebtDetail() {
   const remainingAmount = debt.paymentSchedule.filter(ps => !ps.isPaid).reduce((sum, ps) => sum + ps.amount, 0);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  const overduePayments = debt.paymentSchedule.filter(ps => !ps.isPaid && ps.dueDate < today);
+
   const upcomingPayments = debt.paymentSchedule.filter(ps => {
     const dueDate = new Date(ps.dueDate);
     dueDate.setHours(0, 0, 0, 0);
@@ -268,11 +271,11 @@ export default function DebtDetail() {
         <main className="flex-1">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6">
             <div className="flex items-center">
-              <Link to="/paluwagan" className="mr-2 text-indigo-600 hover:text-indigo-800">
+              <Link to="/debt" className="mr-2 text-indigo-600 hover:text-indigo-800">
                 <ArrowLeft className="h-5 w-5" />
               </Link>
               <h2 className="text-2xl font-bold text-gray-900">
-                {debt?.name || 'Paluwagan Details'}
+                {debt?.name || 'Debt Details'}
               </h2>
               <Link
                 to={`/debt/${debtId}/edit/`}
@@ -302,16 +305,42 @@ export default function DebtDetail() {
               </div>
             </div>
 
+            {/* Overdue Payments */}
+            {overduePayments.length > 0 && (
+              <div className="mt-6 bg-white shadow rounded-lg">
+                <div className="px-4 py-5 sm:p-6">
+                  <h3 className="text-lg font-medium text-gray-900">Attention Needed</h3>
+                  <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex">
+                      <AlertCircle className="h-6 w-6 text-red-500" />
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-red-800">
+                          {overduePayments.length} Overdue Payment{overduePayments.length > 1 ? 's' : ''}
+                        </h3>
+                        <ul className="mt-2 text-sm text-red-700 list-disc pl-5">
+                          {overduePayments.map((ps, idx) => (
+                            <li key={idx}>₱{ps.amount.toLocaleString()} due on {formatDate(ps.dueDate)}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Upcoming Payments */}
             {upcomingPayments.length > 0 && (
               <div className="mt-6 bg-white shadow rounded-lg">
                 <div className="px-4 py-5 sm:p-6">
-                  <h3 className="text-lg font-medium text-gray-900">Upcoming Payments</h3>
+                  <h3 className="text-lg font-medium text-gray-900">Attention Needed</h3>
                   <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <div className="flex">
                       <AlertCircle className="h-6 w-6 text-yellow-500" />
                       <div className="ml-3">
-                        <h3 className="text-sm font-medium text-yellow-800">Due Soon</h3>
+                        <h3 className="text-sm font-medium text-yellow-800">
+                          {upcomingPayments.length} Payment{upcomingPayments.length > 1 ? 's' : ''} Due Soon
+                        </h3>
                         <ul className="mt-2 text-sm text-yellow-700 list-disc pl-5">
                           {upcomingPayments.map((ps, idx) => (
                             <li key={idx}>₱{ps.amount.toLocaleString()} due on {formatDate(ps.dueDate)}</li>

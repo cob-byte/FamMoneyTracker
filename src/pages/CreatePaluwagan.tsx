@@ -177,13 +177,12 @@ export default function CreatePaluwagan() {
             </div>
 
             <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-              <form onSubmit={handleSubmit} className="p-6">
+              <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 {error && (
                   <div className="mb-4 p-4 text-sm text-red-700 bg-red-100 rounded-lg">
                     {error}
                   </div>
                 )}
-
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium text-gray-700">
@@ -198,7 +197,6 @@ export default function CreatePaluwagan() {
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     />
                   </div>
-
                   <div>
                     <label htmlFor="organizer" className="block text-sm font-medium text-gray-700">
                       Organizer
@@ -212,39 +210,72 @@ export default function CreatePaluwagan() {
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     />
                   </div>
-
                   <div>
                     <label htmlFor="amountPerNumber" className="block text-sm font-medium text-gray-700">
                       Amount Per Number (PHP)
                     </label>
-                    <input
-                      type="number"
-                      id="amountPerNumber"
-                      value={amountPerNumber}
-                      onChange={(e) => setAmountPerNumber(e.target.value)}
-                      required
-                      min="1"
-                      step="0.01"
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    />
+                    <div className="mt-1 relative rounded-md shadow-sm">
+                      <input
+                        type="number"
+                        id="amountPerNumber"
+                        value={amountPerNumber}
+                        onChange={(e) => setAmountPerNumber(e.target.value)}
+                        required
+                        min="1"
+                        step="0.01"
+                        className="block w-full pr-20 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => setAmountPerNumber((prev) => Math.max(1, parseFloat(prev || '0') - 1).toFixed(2))}
+                          className="h-full px-2 text-gray-500 hover:text-gray-700 border-l border-gray-300"
+                        >
+                          -
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAmountPerNumber((prev) => (parseFloat(prev || '0') + 1).toFixed(2))}
+                          className="h-full px-2 text-gray-500 hover:text-gray-700 border-l border-gray-300"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
                   </div>
-
                   <div>
                     <label htmlFor="totalNumbers" className="block text-sm font-medium text-gray-700">
                       Total Numbers
                     </label>
-                    <input
-                      type="number"
-                      id="totalNumbers"
-                      value={totalNumbers}
-                      onChange={(e) => setTotalNumbers(e.target.value)}
-                      required
-                      min="1"
-                      max="100"
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    />
+                    <div className="mt-1 relative rounded-md shadow-sm">
+                      <input
+                        type="number"
+                        id="totalNumbers"
+                        value={totalNumbers}
+                        onChange={(e) => setTotalNumbers(e.target.value)}
+                        required
+                        min="1"
+                        max="100"
+                        className="block w-full pr-20 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => setTotalNumbers((prev) => Math.max(1, parseInt(prev || '0') - 1).toString())}
+                          className="h-full px-2 text-gray-500 hover:text-gray-700 border-l border-gray-300"
+                        >
+                          -
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setTotalNumbers((prev) => Math.min(100, parseInt(prev || '0') + 1).toString())}
+                          className="h-full px-2 text-gray-500 hover:text-gray-700 border-l border-gray-300"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
                   </div>
-
                   <div>
                     <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
                       Start Date
@@ -258,7 +289,6 @@ export default function CreatePaluwagan() {
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     />
                   </div>
-
                   <div>
                     <label htmlFor="payoutPerNumber" className="block text-sm font-medium text-gray-700">
                       Payout Per Number (PHP)
@@ -278,7 +308,6 @@ export default function CreatePaluwagan() {
                       Calculated automatically: Amount Per Number × Total Numbers
                     </p>
                   </div>
-
                   <div className="sm:col-span-2">
                     <label htmlFor="description" className="block text-sm font-medium text-gray-700">
                       Description (Optional)
@@ -292,7 +321,6 @@ export default function CreatePaluwagan() {
                     />
                   </div>
                 </div>
-
                 <div className="mt-6">
                   <h3 className="text-lg font-medium text-gray-900">
                     Select Your Numbers (1 to {totalNumbers || 0})
@@ -306,24 +334,22 @@ export default function CreatePaluwagan() {
                         key={number}
                         type="button"
                         onClick={() => handleNumberSelection(number)}
-                        className={`py-2 px-3 text-center rounded-md text-sm font-medium
-                          ${
-                            selectedNumbers.includes(number)
-                              ? 'bg-indigo-600 text-white'
-                              : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                          }`}
+                        className={`py-2 px-3 text-center rounded-md text-sm font-medium ${
+                          selectedNumbers.includes(number)
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                        }`}
                       >
                         {number}
                       </button>
                     ))}
                   </div>
                 </div>
-
-                <div className="mt-6 flex justify-end">
+                <div className="mt-6 flex justify-end space-x-3">
                   <button
                     type="button"
                     onClick={() => navigate('/paluwagan')}
-                    className="mr-3 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    className="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
                     Cancel
                   </button>

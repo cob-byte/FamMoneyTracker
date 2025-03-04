@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getFirestore, collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
-import { Calendar, Users, TrendingUp, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Calendar, Users, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Paluwagan, PaluwaganNumber, WeeklyPayment } from '../types/paluwagan';
 
 export default function DashboardPaluwaganPreview() {
@@ -73,13 +73,6 @@ export default function DashboardPaluwaganPreview() {
     }).format(date);
   }
 
-  function formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('en-PH', {
-      style: 'currency',
-      currency: 'PHP'
-    }).format(amount);
-  }
-
   function calculateNextPayout(paluwagan: Paluwagan): PaluwaganNumber | null {
     const today = new Date();
     const upcomingNumbers = paluwagan.numbers
@@ -118,18 +111,6 @@ export default function DashboardPaluwaganPreview() {
       
       return dueDate >= today && dueDate <= oneWeekAhead && !payment.isPaid;
     });
-  }
-
-  function calculateNetPosition(paluwagan: Paluwagan): number {
-    const totalPaid = paluwagan.weeklyPayments
-      .filter(payment => payment.isPaid)
-      .reduce((sum: number, payment) => sum + payment.amount, 0);
-    
-    const totalReceived = paluwagan.numbers
-      .filter(num => num.isOwner && num.isPaid)
-      .reduce((sum: number) => sum + paluwagan.payoutPerNumber, 0);
-    
-    return totalReceived - totalPaid;
   }
 
   // First, render the header consistently regardless of loading/empty state
@@ -185,8 +166,6 @@ export default function DashboardPaluwaganPreview() {
           const progressPercentage = calculateProgressPercentage(paluwagan);
           const currentWeekPayment = getCurrentWeekPayment(paluwagan);
           const myNumbers = paluwagan.numbers.filter(num => num.isOwner).length;
-          const netPosition = calculateNetPosition(paluwagan);
-          const isPositive = netPosition >= 0;
 
           return (
             <Link 
@@ -228,12 +207,6 @@ export default function DashboardPaluwaganPreview() {
                         <Users className="h-4 w-4 text-gray-400 mr-1" />
                         <span className="text-gray-600">
                           {myNumbers} number{myNumbers !== 1 ? 's' : ''}
-                        </span>
-                      </div>
-                      <div className={`flex items-center ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                        <TrendingUp className="h-4 w-4 mr-1" />
-                        <span className="font-medium">
-                          {formatCurrency(Math.abs(netPosition))} {isPositive ? 'gain' : 'contributed'}
                         </span>
                       </div>
                     </div>

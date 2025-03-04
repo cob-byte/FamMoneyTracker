@@ -50,6 +50,8 @@ export default function AddTransaction() {
     'Salary', 'Bonus', 'Refund', 'Gift', 'Interest', 'Investment', 'Other'
   ];
 
+  
+
   useEffect(() => {
     async function fetchUserDataAndAccounts() {
       if (!currentUser) return;
@@ -207,9 +209,9 @@ export default function AddTransaction() {
                 </div>
               )}
               
-              <form onSubmit={handleSubmit}>
-                {/* Transaction Type Toggle - Full Width */}
-                <div className="mb-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Transaction Type Toggle */}
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Transaction Type
                   </label>
@@ -217,38 +219,38 @@ export default function AddTransaction() {
                     <button
                       type="button"
                       onClick={() => setType('expense')}
-                      className={`relative w-1/2 py-2 text-sm font-medium rounded-l-md focus:outline-none 
-                          ${type === 'expense' 
-                          ? 'bg-red-100 text-red-700 border border-red-500' 
-                          : 'bg-gray-50 text-gray-700 border border-gray-300 hover:bg-gray-100'}`}
+                      className={`w-1/2 py-2 text-sm font-medium rounded-l-md border border-gray-300 focus:outline-none ${
+                        type === 'expense'
+                          ? 'bg-red-100 text-red-700 border-red-500'
+                          : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                      }`}
                     >
                       Expense
                     </button>
                     <button
                       type="button"
                       onClick={() => setType('income')}
-                      className={`relative w-1/2 py-2 text-sm font-medium rounded-r-md focus:outline-none 
-                          ${type === 'income' 
-                          ? 'bg-green-100 text-green-700 border border-green-500' 
-                          : 'bg-gray-50 text-gray-700 border border-gray-300 hover:bg-gray-100'}`}
+                      className={`w-1/2 py-2 text-sm font-medium rounded-r-md border border-gray-300 focus:outline-none ${
+                        type === 'income'
+                          ? 'bg-green-100 text-green-700 border-green-500'
+                          : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                      }`}
                     >
                       Income
                     </button>
                   </div>
                 </div>
 
-                
                 {/* Two Column Layout */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  
                   {/* Left Column */}
-                  <div>
+                  <div className="space-y-4">
                     {/* Amount Input */}
-                    <div className="mb-4">
-                      <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
+                    <div>
+                      <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
                         Amount
                       </label>
-                      <div className="relative rounded-md shadow-sm">
+                      <div className="relative mt-1 rounded-md shadow-sm">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                           <span className="text-gray-500 sm:text-sm">
                             {currencySymbols[currency] || currency}
@@ -257,21 +259,44 @@ export default function AddTransaction() {
                         <input
                           type="number"
                           id="amount"
-                          step="0.01"
+                          step="1"
                           min="0"
                           value={amount}
                           onChange={(e) => setAmount(e.target.value)}
-                          className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-12 sm:text-sm border-gray-300 rounded-md"
+                          className="block w-full pl-10 pr-20 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                           placeholder="0.00"
                           required
                         />
+                        <div className="absolute inset-y-0 right-0 flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAmount((prev) => {
+                              const current = parseFloat(prev || '0');
+                              if (current < 1) {
+                                return prev;
+                              }
+                              return (current - 1).toFixed(2);
+                            });
+                          }}
+                          className="h-full px-2 text-gray-500 hover:text-gray-700 border-l border-gray-300"
+                        >
+                          -
+                        </button>
+                          <button
+                            type="button"
+                            onClick={() => setAmount((prev) => (parseFloat(prev || '0') + 1).toFixed(2))}
+                            className="h-full px-2 text-gray-500 hover:text-gray-700 border-l border-gray-300"
+                          >
+                            +
+                        </button>
+                        </div>
                       </div>
                     </div>
 
-                    
                     {/* Description Input */}
-                    <div className="mb-4">
-                      <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                    <div>
+                      <label htmlFor="description" className="block text-sm font-medium text-gray-700">
                         Description
                       </label>
                       <input
@@ -279,23 +304,22 @@ export default function AddTransaction() {
                         id="description"
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         placeholder="What was this transaction for?"
                         required
                       />
                     </div>
 
-                    
                     {/* Category Select */}
-                    <div className="mb-4">
-                      <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+                    <div>
+                      <label htmlFor="category" className="block text-sm font-medium text-gray-700">
                         Category
                       </label>
                       <select
                         id="category"
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         required
                       >
                         <option value="">Select a category</option>
@@ -304,21 +328,20 @@ export default function AddTransaction() {
                         ))}
                       </select>
                     </div>
-
                   </div>
-                  
+
                   {/* Right Column */}
-                  <div>
+                  <div className="space-y-4">
                     {/* Account Select */}
-                    <div className="mb-4">
-                      <label htmlFor="accountId" className="block text-sm font-medium text-gray-700 mb-1">
+                    <div>
+                      <label htmlFor="accountId" className="block text-sm font-medium text-gray-700">
                         Account
                       </label>
                       <select
                         id="accountId"
                         value={accountId}
                         onChange={(e) => setAccountId(e.target.value)}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         required
                       >
                         <option value="">Select an account</option>
@@ -330,38 +353,24 @@ export default function AddTransaction() {
                       </select>
                     </div>
 
-                    
                     {/* Date Input */}
-                    <div className="mb-4">
-                      <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
+                    <div>
+                      <label htmlFor="date" className="block text-sm font-medium text-gray-700">
                         Date
                       </label>
-                      <div className="flex items-center">
-                        <input
-                          type="date"
-                          id="date"
-                          value={date}
-                          onChange={(e) => setDate(e.target.value)}
-                          className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDate(new Date().toISOString().slice(0, 10));
-                            setTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }));
-                          }}
-                          className="ml-2 inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        >
-                          Now
-                        </button>
-                      </div>
+                      <input
+                        type="date"
+                        id="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        required
+                      />
                     </div>
 
-
                     {/* Time Input */}
-                    <div className="mb-4">
-                      <label htmlFor="time" className="block text-sm font-medium text-gray-700 mb-1">
+                    <div>
+                      <label htmlFor="time" className="block text-sm font-medium text-gray-700">
                         Time
                       </label>
                       <input
@@ -369,25 +378,22 @@ export default function AddTransaction() {
                         id="time"
                         value={time}
                         onChange={(e) => setTime(e.target.value)}
-                        className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                       />
                     </div>
-
                   </div>
                 </div>
 
-                
-                {/* Submit Button - Full Width */}
-                <div className="mt-6">
+                {/* Submit Button */}
+                <div>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                   >
                     {loading ? 'Adding...' : `Add ${type === 'expense' ? 'Expense' : 'Income'}`}
                   </button>
                 </div>
-
               </form>
             </div>
           </div>

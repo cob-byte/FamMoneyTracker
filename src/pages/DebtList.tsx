@@ -61,27 +61,48 @@ export default function DebtList() {
     return unpaidSchedules.length > 0 ? unpaidSchedules[0].dueDate : null;
   }
 
-  function isDueSoon(date: Date | null): boolean {
-    if (!date) return false;
+  function getDebtStatus(debt: Debt) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const dueDate = new Date(date);
-    dueDate.setHours(0, 0, 0, 0);
-    const diffMs = dueDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-    return diffDays >= 0 && diffDays <= 7; // Includes today (0 days) up to 7 days ahead
-  }
+    
+    const unpaidSchedules = debt.paymentSchedule.filter(ps => !ps.isPaid);
+    
+    if (unpaidSchedules.length === 0) {
+      return {
+        status: 'Paid Off',
+        hasAlert: false,
+        alertType: null
+      };
+    }
 
-  function getDebtStatus(debt: Debt): 'Paid Off' | 'Overdue' | 'Due Soon' | 'On Track' {
-    const remaining = calculateRemainingAmount(debt);
-    if (remaining === 0) return 'Paid Off';
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const hasOverdue = debt.paymentSchedule.some(ps => !ps.isPaid && ps.dueDate < today);
-    if (hasOverdue) return 'Overdue';
+    const hasOverdue = unpaidSchedules.some(ps => ps.dueDate < today);
+    if (hasOverdue) {
+      return {
+        status: 'Overdue',
+        hasAlert: true,
+        alertType: 'overdue'
+      };
+    }
+
     const nextDue = getNextDueDate(debt);
-    if (nextDue && isDueSoon(nextDue)) return 'Due Soon';
-    return 'On Track';
+    if (nextDue) {
+      const diffMs = nextDue.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+      
+      if (diffDays >= 0 && diffDays <= 7) {
+        return {
+          status: 'Due Soon',
+          hasAlert: true,
+          alertType: 'due-soon'
+        };
+      }
+    }
+
+    return {
+      status: 'On Track',
+      hasAlert: false,
+      alertType: null
+    };
   }
 
   const oweDebts = debts.filter(debt => debt.type === 'owe');
@@ -128,8 +149,8 @@ export default function DebtList() {
                   {oweDebts.map(debt => {
                     const remaining = calculateRemainingAmount(debt);
                     const nextDue = getNextDueDate(debt);
-                    const status = getDebtStatus(debt);
-                    const dueSoon = status === 'Due Soon';
+                    const { status, hasAlert, alertType } = getDebtStatus(debt);
+
                     return (
                       <Link to={`/debt/${debt.id}`} className="block" key={debt.id}>
                         <div className="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow">
@@ -146,27 +167,41 @@ export default function DebtList() {
                                 <p className="text-lg font-semibold">{formatCurrency(remaining)}</p>
                               </div>
                             </div>
-                            <div className="mt-4">
-                              <p className="text-sm text-gray-600">
-                                Next Due: {nextDue ? formatDate(nextDue) : 'Paid Off'}
-                              </p>
-                              <p className={`mt-2 text-sm font-medium ${
-                                status === 'Paid Off' ? 'text-green-600' : 
-                                status === 'Overdue' ? 'text-red-600' : 
-                                status === 'Due Soon' ? 'text-yellow-600' : 'text-gray-600'
-                              }`}>
-                                {status}
-                              </p>
-                              {status === 'Overdue' && (
-                                <div className="mt-2 flex items-center text-red-600 bg-red-50 p-2 rounded-md">
+                            <div className="mt-5 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  <span className="text-sm text-gray-600">Next Due</span>
+                                </div>
+                                <span className="text-sm font-medium text-indigo-600">
+                                  {nextDue ? formatDate(nextDue) : 'Paid Off'}
+                                </span>
+                              </div>
+                              
+                              {status === 'Paid Off' && (
+                                <div className="flex items-center justify-between text-green-600 bg-green-50 p-2 rounded-md">
+                                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                                  <span className="text-xs">All payments complete</span>
+                                </div>
+                              )}
+
+                              {hasAlert && alertType === 'overdue' && (
+                                <div className="flex items-center justify-between text-red-600 bg-red-50 p-2 rounded-md">
                                   <AlertCircle className="h-4 w-4 mr-1" />
                                   <span className="text-xs">Payment overdue</span>
                                 </div>
                               )}
-                              {dueSoon && (
-                                <div className="mt-2 flex items-center text-yellow-600 bg-yellow-50 p-2 rounded-md">
+
+                              {hasAlert && alertType === 'due-soon' && (
+                                <div className="flex items-center justify-between text-amber-600 bg-amber-50 p-2 rounded-md">
                                   <AlertCircle className="h-4 w-4 mr-1" />
-                                  <span className="text-xs">Payment due soon</span>
+                                  <span className="text-xs">Payment due this week</span>
+                                </div>
+                              )}
+
+                              {!hasAlert && status === 'On Track' && (
+                                <div className="flex items-center justify-between text-green-600 bg-green-50 p-2 rounded-md">
+                                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                                  <span className="text-xs">All payments up to date</span>
                                 </div>
                               )}
                             </div>
@@ -180,7 +215,7 @@ export default function DebtList() {
                 <div className="text-center py-12 bg-white shadow rounded-lg">
                   <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
                   <h3 className="mt-2 text-sm font-medium text-gray-900">No Debts</h3>
-                  <p className="mt-1 text-sm text-gray-500">You don’t owe anyone yet.</p>
+                  <p className="mt-1 text-sm text-gray-500">You don't owe anyone yet.</p>
                 </div>
               )}
             </div>
@@ -193,8 +228,8 @@ export default function DebtList() {
                   {owedDebts.map(debt => {
                     const remaining = calculateRemainingAmount(debt);
                     const nextDue = getNextDueDate(debt);
-                    const status = getDebtStatus(debt);
-                    const dueSoon = status === 'Due Soon';
+                    const { status, hasAlert, alertType } = getDebtStatus(debt);
+
                     return (
                       <Link to={`/debt/${debt.id}`} className="block" key={debt.id}>
                         <div className="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow">
@@ -211,33 +246,41 @@ export default function DebtList() {
                                 <p className="text-lg font-semibold">{formatCurrency(remaining)}</p>
                               </div>
                             </div>
-                            <div className="mt-4">
-                              <p className="text-sm text-gray-600">
-                                Next Due: {nextDue ? formatDate(nextDue) : 'Paid Off'}
-                              </p>
-                              <p className={`mt-2 text-sm font-medium ${
-                                status === 'Paid Off' ? 'text-green-600' : 
-                                status === 'Overdue' ? 'text-red-600' : 
-                                status === 'Due Soon' ? 'text-yellow-600' : 'text-gray-600'
-                              }`}>
-                                {status}
-                              </p>
-                              {status === 'Overdue' && (
-                                <div className="mt-2 flex items-center text-red-600 bg-red-50 p-2 rounded-md">
+                            <div className="mt-5 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  <span className="text-sm text-gray-600">Next Due</span>
+                                </div>
+                                <span className="text-sm font-medium text-indigo-600">
+                                  {nextDue ? formatDate(nextDue) : 'Paid Off'}
+                                </span>
+                              </div>
+                              
+                              {status === 'Paid Off' && (
+                                <div className="flex items-center justify-between text-green-600 bg-green-50 p-2 rounded-md">
+                                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                                  <span className="text-xs">All payments received</span>
+                                </div>
+                              )}
+
+                              {hasAlert && alertType === 'overdue' && (
+                                <div className="flex items-center justify-between text-red-600 bg-red-50 p-2 rounded-md">
                                   <AlertCircle className="h-4 w-4 mr-1" />
                                   <span className="text-xs">Payment overdue</span>
                                 </div>
                               )}
-                              {dueSoon && (
-                                <div className="mt-2 flex items-center text-yellow-600 bg-yellow-50 p-2 rounded-md">
+
+                              {hasAlert && alertType === 'due-soon' && (
+                                <div className="flex items-center justify-between text-amber-600 bg-amber-50 p-2 rounded-md">
                                   <AlertCircle className="h-4 w-4 mr-1" />
-                                  <span className="text-xs">Payment due soon</span>
+                                  <span className="text-xs">Payment due this week</span>
                                 </div>
                               )}
-                              {status === 'Paid Off' && (
-                                <div className="mt-2 flex items-center text-green-600 bg-green-50 p-2 rounded-md">
+
+                              {!hasAlert && status === 'On Track' && (
+                                <div className="flex items-center justify-between text-green-600 bg-green-50 p-2 rounded-md">
                                   <CheckCircle2 className="h-4 w-4 mr-1" />
-                                  <span className="text-xs">All payments received</span>
+                                  <span className="text-xs">All payments up to date</span>
                                 </div>
                               )}
                             </div>

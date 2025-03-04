@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getFirestore, collection, query, getDocs, orderBy } from 'firebase/firestore';
-import { Plus, Calendar, Users, TrendingUp, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Plus, Calendar, Users, AlertCircle, CheckCircle2, Gift } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { Paluwagan } from '../types/paluwagan';
 
@@ -104,18 +104,6 @@ export default function PaluwaganList() {
     });
   }
 
-  function calculateNetPosition(paluwagan: Paluwagan) {
-    const totalPaid = paluwagan.weeklyPayments
-      .filter(payment => payment.isPaid)
-      .reduce((sum, payment) => sum + payment.amount, 0);
-    
-    const totalReceived = paluwagan.numbers
-      .filter(num => num.isOwner && num.isPaid)
-      .reduce((sum) => sum + paluwagan.payoutPerNumber, 0);
-    
-    return totalReceived - totalPaid;
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -160,8 +148,6 @@ export default function PaluwaganList() {
                   const currentWeekPayment = getCurrentWeekPayment(paluwagan);
                   const myNumbers = paluwagan.numbers.filter(num => num.isOwner).length;
                   const weeklyDue = paluwagan.amountPerNumber * myNumbers;
-                  const netPosition = calculateNetPosition(paluwagan);
-                  const isPositive = netPosition >= 0;
 
                   return (
                     <Link 
@@ -219,21 +205,20 @@ export default function PaluwaganList() {
                                   {myNumbers} number{myNumbers !== 1 ? 's' : ''}
                                 </span>
                               </div>
-                              <div className={`flex items-center ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                                <TrendingUp className="h-4 w-4 mr-1" />
-                                <span className="text-sm font-medium">
-                                  {formatCurrency(Math.abs(netPosition))} {isPositive ? 'gain' : 'contributed'}
-                                </span>
-                              </div>
                             </div>
                             
-                            {nextPayout && (
+                            {nextPayout ? (
                               <div className="flex items-center justify-between">
                                 <Calendar className="h-4 w-4 text-gray-400 mr-1" />
                                 <span className="text-sm text-gray-600 flex-grow">Next payout</span>
                                 <span className="text-sm font-medium text-indigo-600">
                                   {formatDate(nextPayout.payoutDate)}
                                 </span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between text-green-600 bg-green-50 p-2 rounded-md">
+                                <Gift className="h-4 w-4 text-green-500 mr-1" />
+                                <span className="text-xs flex-grow">All payouts received</span>
                               </div>
                             )}
                             

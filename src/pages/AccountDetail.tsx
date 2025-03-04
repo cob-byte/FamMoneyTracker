@@ -422,70 +422,68 @@ export default function AccountDetail() {
 
                 {/* Edit Modal */}
                 {editingTransaction && (
-                <div
+                  <div
                     className="fixed inset-0 z-50 overflow-y-auto h-full w-full backdrop-blur-sm bg-black/20"
                     onClick={() => setEditingTransaction(null)}
-                >
-                    <div className="flex items-center justify-center min-h-screen p-4">
-                    <div
-                        className="relative my-8 mx-auto p-4 sm:p-6 border w-full max-w-[90%] sm:max-w-lg md:max-w-3xl shadow-lg rounded-md bg-white overflow-x-hidden z-50"
+                  >
+                    <div className="flex items-center justify-center min-h-screen px-4">
+                      <div
+                        className="relative my-8 mx-auto p-6 border w-full max-w-[90%] sm:max-w-lg md:max-w-3xl shadow-lg rounded-md bg-white overflow-x-hidden z-50"
                         onClick={(e) => e.stopPropagation()}
-                    >
-                        <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">
-                        Modify Transaction
-                        </h3>
+                      >
+                        <h3 className="text-lg font-medium leading-6 text-gray-900 mb-6">Modify Transaction</h3>
                         {modalError && (
-                        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+                          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
                             <div className="flex items-center">
-                            <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-                            <p className="text-sm text-red-700">{modalError}</p>
+                              <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+                              <p className="text-sm text-red-700">{modalError}</p>
                             </div>
-                        </div>
+                          </div>
                         )}
-                        <form>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                        <form className="space-y-6">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             {/* Left Column */}
                             <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Transaction Type
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                  Transaction Type
                                 </label>
-                                <div className="flex w-full rounded-md shadow-sm">
-                                <button
+                                <div className="mt-1 flex w-full rounded-md shadow-sm">
+                                  <button
                                     type="button"
                                     onClick={() => setFormData(prev => ({ ...prev, type: 'expense' }))}
-                                    className={`relative w-1/2 py-2 text-sm font-medium rounded-l-md focus:outline-none ${
-                                    formData.type === 'expense'
-                                        ? 'bg-red-100 text-red-700 border border-red-500'
-                                        : 'bg-gray-50 text-gray-700 border border-gray-300 hover:bg-gray-100'
+                                    className={`w-1/2 py-2 text-sm font-medium rounded-l-md border border-gray-300 focus:outline-none ${
+                                      formData.type === 'expense'
+                                        ? 'bg-red-100 text-red-700 border-red-500'
+                                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                                     }`}
-                                >
+                                  >
                                     Expense
-                                </button>
-                                <button
+                                  </button>
+                                  <button
                                     type="button"
                                     onClick={() => setFormData(prev => ({ ...prev, type: 'income' }))}
-                                    className={`relative w-1/2 py-2 text-sm font-medium rounded-r-md focus:outline-none ${
-                                    formData.type === 'income'
-                                        ? 'bg-green-100 text-green-700 border border-green-500'
-                                        : 'bg-gray-50 text-gray-700 border border-gray-300 hover:bg-gray-100'
+                                    className={`w-1/2 py-2 text-sm font-medium rounded-r-md border border-gray-300 focus:outline-none ${
+                                      formData.type === 'income'
+                                        ? 'bg-green-100 text-green-700 border-green-500'
+                                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                                     }`}
-                                >
+                                  >
                                     Income
-                                </button>
+                                  </button>
                                 </div>
-                            </div>
-                            <div>
+                              </div>
+                              <div>
                                 <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
-                                Amount
+                                  Amount
                                 </label>
                                 <div className="mt-1 relative rounded-md shadow-sm">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <span className="text-gray-500 sm:text-sm">
-                                    {currencySymbols[currency] || currency}
+                                      {currencySymbols[currency] || currency}
                                     </span>
-                                </div>
-                                <input
+                                  </div>
+                                  <input
                                     type="number"
                                     name="amount"
                                     id="amount"
@@ -493,109 +491,110 @@ export default function AccountDetail() {
                                     min="0"
                                     value={formData.amount}
                                     onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-                                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-12 sm:text-sm border-gray-300 rounded-md"
+                                    className="block w-full pl-10 pr-20 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                     placeholder="0.00"
-                                />
+                                  />
+                                  <div className="absolute inset-y-0 right-0 flex items-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => setFormData(prev => ({ ...prev, amount: (parseFloat(prev.amount || '0') - 1).toFixed(2) }))}
+                                      className="h-full px-2 text-gray-500 hover:text-gray-700 border-l border-gray-300"
+                                    >
+                                      -
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setFormData(prev => ({ ...prev, amount: (parseFloat(prev.amount || '0') + 1).toFixed(2) }))}
+                                      className="h-full px-2 text-gray-500 hover:text-gray-700 border-l border-gray-300"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
                                 </div>
-                            </div>
-                            <div>
+                              </div>
+                              <div>
                                 <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                                Description
+                                  Description
                                 </label>
                                 <input
-                                type="text"
-                                name="description"
-                                id="description"
-                                value={formData.description}
-                                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                                className="mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                                placeholder="What was this transaction for?"
+                                  type="text"
+                                  name="description"
+                                  id="description"
+                                  value={formData.description}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                  placeholder="What was this transaction for?"
                                 />
-                            </div>
-                            <div>
+                              </div>
+                              <div>
                                 <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-                                Category
+                                  Category
                                 </label>
                                 <select
-                                id="category"
-                                name="category"
-                                value={formData.category}
-                                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                                  id="category"
+                                  name="category"
+                                  value={formData.category}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                 >
-                                <option value="">Select a category</option>
-                                {(formData.type === 'expense' ? expenseCategories : incomeCategories).map(cat => (
+                                  <option value="">Select a category</option>
+                                  {(formData.type === 'expense' ? expenseCategories : incomeCategories).map(cat => (
                                     <option key={cat} value={cat}>{cat}</option>
-                                ))}
+                                  ))}
                                 </select>
-                            </div>
+                              </div>
                             </div>
                             {/* Right Column */}
                             <div className="space-y-4">
-                            <div>
+                              <div>
                                 <label htmlFor="date" className="block text-sm font-medium text-gray-700">
-                                Date
+                                  Date
                                 </label>
-                                <div className="mt-1 flex flex-col sm:flex-row sm:items-center gap-2">
                                 <input
-                                    type="date"
-                                    name="date"
-                                    id="date"
-                                    value={formData.date}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                                    className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                  type="date"
+                                  name="date"
+                                  id="date"
+                                  value={formData.date}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                 />
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                    const now = new Date();
-                                    setFormData(prev => ({
-                                        ...prev,
-                                        date: now.toISOString().slice(0, 10),
-                                        time: now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-                                    }));
-                                    }}
-                                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-full sm:w-auto"
-                                >
-                                    Now
-                                </button>
-                                </div>
-                            </div>
-                            <div>
+                              </div>
+                              <div>
                                 <label htmlFor="time" className="block text-sm font-medium text-gray-700">
-                                Time
+                                  Time
                                 </label>
                                 <input
-                                type="time"
-                                name="time"
-                                id="time"
-                                value={formData.time}
-                                onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
-                                className="mt-1 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                  type="time"
+                                  name="time"
+                                  id="time"
+                                  value={formData.time}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
+                                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                 />
+                              </div>
                             </div>
-                            </div>
-                        </div>
-                        <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 mt-6">
+                          </div>
+                          <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3">
                             <button
-                            type="button"
-                            onClick={() => setEditingTransaction(null)}
-                            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-full sm:w-auto"
+                              type="button"
+                              onClick={() => setEditingTransaction(null)}
+                              className="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-full sm:w-auto"
                             >
-                            Cancel
+                              Cancel
                             </button>
                             <button
-                            type="button"
-                            onClick={handleSave}
-                            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-full sm:w-auto"
+                              type="button"
+                              onClick={handleSave}
+                              disabled={loading}
+                              className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 w-full sm:w-auto"
                             >
-                            Save Changes
+                              {loading ? 'Saving...' : 'Save Changes'}
                             </button>
-                        </div>
+                          </div>
                         </form>
+                      </div>
                     </div>
-                    </div>
-                </div>
+                  </div>
                 )}
 
                 {/* Transactions section */}
