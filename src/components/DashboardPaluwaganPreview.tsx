@@ -6,63 +6,61 @@ import { Calendar, Users, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Paluwagan, PaluwaganNumber, WeeklyPayment } from '../types/paluwagan';
 
 export default function DashboardPaluwaganPreview() {
-    const [loading, setLoading] = useState(true);
-    const [paluwagans, setPaluwagans] = useState<Paluwagan[]>([]);
-    const { currentUser } = useAuth();
-    const db = getFirestore();
-  
-    useEffect(() => {
-      async function fetchPaluwagans() {
-        if (!currentUser) return;
-  
-        try {
-          const paluwagansCollectionRef = collection(db, 'users', currentUser.uid, 'paluwagans');
-          const paluwagansQuery = query(paluwagansCollectionRef, orderBy('createdAt', 'desc'));
-          const paluwagansSnapshot = await getDocs(paluwagansQuery);
-  
-          const paluwagansData = paluwagansSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            startDate: doc.data().startDate?.toDate(),
-            createdAt: doc.data().createdAt?.toDate(),
-            updatedAt: doc.data().updatedAt?.toDate(),
-            numbers: doc.data().numbers?.map((num: any) => ({
-              ...num,
-              payoutDate: num.payoutDate?.toDate()
-            })),
-            weeklyPayments: doc.data().weeklyPayments?.map((payment: any) => ({
-              ...payment,
-              dueDate: payment.dueDate?.toDate()
-            }))
-          })) as Paluwagan[];
-  
-          const paluwagansWithDueDates = paluwagansData.map(paluwagan => {
-            const currentWeekPayment = getCurrentWeekPayment(paluwagan);
-            return {
-              ...paluwagan,
-              nextDueDate: currentWeekPayment ? currentWeekPayment.dueDate : null
-            };
-          });
-  
-          // Sort by next due date (earliest first, nulls last)
-          const sortedPaluwagans = paluwagansWithDueDates.sort((a, b) => {
-            if (!a.nextDueDate && !b.nextDueDate) return 0;
-            if (!a.nextDueDate) return 1;
-            if (!b.nextDueDate) return -1;
-            return a.nextDueDate.getTime() - b.nextDueDate.getTime();
-          });
-  
-          // Take the first 3
-          setPaluwagans(sortedPaluwagans.slice(0, 3));
-          setLoading(false);
-        } catch (error) {
-          console.error('Error fetching paluwagans:', error);
-          setLoading(false);
-        }
+  const [loading, setLoading] = useState(true);
+  const [paluwagans, setPaluwagans] = useState<Paluwagan[]>([]);
+  const { currentUser } = useAuth();
+  const db = getFirestore();
+
+  useEffect(() => {
+    async function fetchPaluwagans() {
+      if (!currentUser) return;
+
+      try {
+        const paluwagansCollectionRef = collection(db, 'users', currentUser.uid, 'paluwagans');
+        const paluwagansQuery = query(paluwagansCollectionRef, orderBy('createdAt', 'desc'));
+        const paluwagansSnapshot = await getDocs(paluwagansQuery);
+
+        const paluwagansData = paluwagansSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          startDate: doc.data().startDate?.toDate(),
+          createdAt: doc.data().createdAt?.toDate(),
+          updatedAt: doc.data().updatedAt?.toDate(),
+          numbers: doc.data().numbers?.map((num: any) => ({
+            ...num,
+            payoutDate: num.payoutDate?.toDate()
+          })),
+          weeklyPayments: doc.data().weeklyPayments?.map((payment: any) => ({
+            ...payment,
+            dueDate: payment.dueDate?.toDate()
+          }))
+        })) as Paluwagan[];
+
+        const paluwagansWithDueDates = paluwagansData.map(paluwagan => {
+          const currentWeekPayment = getCurrentWeekPayment(paluwagan);
+          return {
+            ...paluwagan,
+            nextDueDate: currentWeekPayment ? currentWeekPayment.dueDate : null
+          };
+        });
+
+        const sortedPaluwagans = paluwagansWithDueDates.sort((a, b) => {
+          if (!a.nextDueDate && !b.nextDueDate) return 0;
+          if (!a.nextDueDate) return 1;
+          if (!b.nextDueDate) return -1;
+          return a.nextDueDate.getTime() - b.nextDueDate.getTime();
+        });
+
+        setPaluwagans(sortedPaluwagans.slice(0, 3));
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching paluwagans:', error);
+        setLoading(false);
       }
-  
-      fetchPaluwagans();
-    }, [currentUser, db]);
+    }
+
+    fetchPaluwagans();
+  }, [currentUser, db]);
 
   function formatDate(date: Date | undefined): string {
     if (!date) return 'Unknown date';
@@ -113,7 +111,6 @@ export default function DashboardPaluwaganPreview() {
     });
   }
 
-  // First, render the header consistently regardless of loading/empty state
   const header = (
     <div className="flex justify-between items-center mb-4">
       <h3 className="text-lg font-medium leading-6 text-gray-900">Your Paluwagan</h3>
@@ -126,9 +123,8 @@ export default function DashboardPaluwaganPreview() {
     </div>
   );
 
-  // Now handle different content states
   let content;
-  
+
   if (loading) {
     content = (
       <div className="bg-white shadow overflow-hidden sm:rounded-md p-4">
@@ -166,6 +162,7 @@ export default function DashboardPaluwaganPreview() {
           const progressPercentage = calculateProgressPercentage(paluwagan);
           const currentWeekPayment = getCurrentWeekPayment(paluwagan);
           const myNumbers = paluwagan.numbers.filter(num => num.isOwner).length;
+          const isComplete = progressPercentage === 100 && !nextPayout;
 
           return (
             <Link 
@@ -174,7 +171,8 @@ export default function DashboardPaluwaganPreview() {
               key={paluwagan.id}
             >
               <div className="bg-white overflow-hidden shadow-sm rounded-lg hover:shadow transition-shadow duration-300 h-full">
-                <div className="px-4 py-4">
+                <div className="px-4 py-4 flex flex-col h-full">
+                  {/* Top Section: Header */}
                   <div className="flex items-center">
                     <div className="flex-shrink-0 bg-indigo-100 rounded-md p-2">
                       <Users className="h-5 w-5 text-indigo-600" />
@@ -185,7 +183,8 @@ export default function DashboardPaluwaganPreview() {
                       </h3>
                     </div>
                   </div>
-                  
+
+                  {/* Middle Section: Progress */}
                   <div className="mt-3">
                     <div className="relative pt-1">
                       <div className="flex items-center justify-between mb-1">
@@ -200,7 +199,11 @@ export default function DashboardPaluwaganPreview() {
                       </div>
                     </div>
                   </div>
-                  
+
+                  {/* Spacer to Push Bottom Section Down */}
+                  <div className="flex-grow"></div>
+
+                  {/* Bottom Section: Status Messages */}
                   <div className="mt-3 space-y-2 text-sm">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
@@ -210,32 +213,41 @@ export default function DashboardPaluwaganPreview() {
                         </span>
                       </div>
                     </div>
-                    
-                    {nextPayout && (
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 text-gray-400 mr-1" />
-                          <span className="text-gray-600">Next payout</span>
-                        </div>
-                        <span className="font-medium text-indigo-600">
-                          {formatDate(nextPayout.payoutDate)}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {currentWeekPayment ? (
-                      <div className="flex items-center justify-between text-amber-600 bg-amber-50 p-1.5 rounded">
-                        <AlertCircle className="h-4 w-4 mr-1" />
-                        <span className="text-xs flex-grow">Payment due</span>
-                        <span className="text-xs font-medium">
-                          {formatDate(currentWeekPayment.dueDate)}
-                        </span>
-                      </div>
-                    ) : (
+
+                    {isComplete ? (
                       <div className="flex items-center justify-between text-green-600 bg-green-50 p-1.5 rounded">
                         <CheckCircle2 className="h-4 w-4 mr-1" />
-                        <span className="text-xs">All payments up to date</span>
+                        <span className="text-xs">Paluwagan Completed</span>
                       </div>
+                    ) : (
+                      <>
+                        {nextPayout && (
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <Calendar className="h-4 w-4 text-gray-400 mr-1" />
+                              <span className="text-gray-600">Next payout</span>
+                            </div>
+                            <span className="font-medium text-indigo-600">
+                              {formatDate(nextPayout.payoutDate)}
+                            </span>
+                          </div>
+                        )}
+
+                        {currentWeekPayment ? (
+                          <div className="flex items-center justify-between text-amber-600 bg-amber-50 p-1.5 rounded">
+                            <AlertCircle className="h-4 w-4 mr-1" />
+                            <span className="text-xs flex-grow">Payment due</span>
+                            <span className="text-xs font-medium">
+                              {formatDate(currentWeekPayment.dueDate)}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between text-green-600 bg-green-50 p-1.5 rounded">
+                            <CheckCircle2 className="h-4 w-4 mr-1" />
+                            <span className="text-xs">All payments up to date</span>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -247,7 +259,6 @@ export default function DashboardPaluwaganPreview() {
     );
   }
 
-  // Return the component with consistent structure
   return (
     <div className="mb-6">
       {header}

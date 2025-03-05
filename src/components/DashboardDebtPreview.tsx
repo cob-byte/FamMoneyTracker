@@ -35,7 +35,6 @@ export default function DashboardDebtPreview() {
           nextDueDate: getNextDueDate(debt)
         }));
 
-        // Sort by next due date (earliest first, nulls last)
         const sortedDebts = debtsWithDueDates.sort((a, b) => {
           if (!a.nextDueDate && !b.nextDueDate) return 0;
           if (!a.nextDueDate) return 1;
@@ -43,7 +42,6 @@ export default function DashboardDebtPreview() {
           return a.nextDueDate.getTime() - b.nextDueDate.getTime();
         });
 
-        // Take the first 3
         setDebts(sortedDebts.slice(0, 3));
         setLoading(false);
       } catch (error) {
@@ -134,7 +132,6 @@ export default function DashboardDebtPreview() {
     return Math.min(Math.round((paidPayments / totalPayments) * 100), 100);
   }
 
-  // First, render the header consistently regardless of loading/empty state
   const header = (
     <div className="flex justify-between items-center mb-4">
       <h3 className="text-lg font-medium leading-6 text-gray-900">Debt Management</h3>
@@ -147,7 +144,6 @@ export default function DashboardDebtPreview() {
     </div>
   );
 
-  // Now handle different content states
   let content;
   
   if (loading) {
@@ -188,6 +184,7 @@ export default function DashboardDebtPreview() {
           const nextDue = getNextDueDate(debt);
           const isOwe = debt.type === 'owe';
           const { status, hasAlert, alertType } = getDebtStatus(debt);
+          const isSinglePayment = debt.paymentSchedule.length === 1;
 
           return (
             <Link 
@@ -196,42 +193,53 @@ export default function DashboardDebtPreview() {
               key={debt.id}
             >
               <div className="bg-white overflow-hidden shadow-sm rounded-lg hover:shadow transition-shadow duration-300 h-full">
-                <div className="px-4 py-4">
+                <div className="px-4 py-4 flex flex-col h-full">
                   <div className="flex items-center">
                     <div className="flex-shrink-0 bg-indigo-100 rounded-md p-2">
                       <Users className="h-5 w-5 text-indigo-600" />
                     </div>
-                    <div className="ml-3">
-                      <h3 className="text-base font-medium text-indigo-600 truncate">
-                        {debt.name}
-                      </h3>
+                    <div className="ml-3 flex-1">
+                      <div className="flex items-center">
+                        <h3 className="text-base font-medium text-indigo-600 truncate">
+                          {debt.name}
+                        </h3>
+                        <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          isOwe ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                        }`}>
+                          {isOwe ? 'I Owe' : 'Owed to Me'}
+                        </span>
+                      </div>
                       <p className="text-xs text-gray-500">
                         {isOwe ? 'To:' : 'From:'} {debt.counterpartyName}
                       </p>
                     </div>
                   </div>
                   
-                  <div className="mt-3">
-                    <div className="relative pt-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-semibold text-indigo-600">Progress</span>
-                        <span className="text-xs font-semibold text-indigo-600">{progressPercentage}%</span>
+                  {/* Middle section with progress bar or spacer */}
+                  <div className="mt-3 flex-grow">
+                    {!isSinglePayment && (
+                      <div className="relative pt-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-semibold text-indigo-600">Progress</span>
+                          <span className="text-xs font-semibold text-indigo-600">{progressPercentage}%</span>
+                        </div>
+                        <div className="overflow-hidden h-2 mb-2 text-xs flex rounded bg-indigo-100">
+                          <div 
+                            style={{ width: `${progressPercentage}%` }} 
+                            className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-500"
+                          ></div>
+                        </div>
                       </div>
-                      <div className="overflow-hidden h-2 mb-2 text-xs flex rounded bg-indigo-100">
-                        <div 
-                          style={{ width: `${progressPercentage}%` }} 
-                          className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-500"
-                        ></div>
-                      </div>
-                    </div>
+                    )}
                   </div>
                   
+                  {/* Bottom section with details and status */}
                   <div className="mt-3 space-y-2 text-sm">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <Users className="h-4 w-4 text-gray-400 mr-1" />
                         <span className="text-gray-600">
-                          {debt.type === 'owe' ? 'Amount owed' : 'Amount to receive'}
+                          {isOwe ? 'Amount owed' : 'Amount to receive'}
                         </span>
                       </div>
                       <span className="font-medium text-gray-900">
@@ -251,7 +259,11 @@ export default function DashboardDebtPreview() {
                     {status === 'Paid Off' && (
                       <div className="flex items-center justify-between text-green-600 bg-green-50 p-1.5 rounded">
                         <CheckCircle2 className="h-4 w-4 mr-1" />
-                        <span className="text-xs">All payments complete</span>
+                        <span className="text-xs">
+                          {isOwe
+                            ? (isSinglePayment ? 'Payment complete' : 'All payments complete')
+                            : (isSinglePayment ? 'Payment received' : 'All payments received')}
+                        </span>
                       </div>
                     )}
 
@@ -270,9 +282,11 @@ export default function DashboardDebtPreview() {
                     )}
 
                     {!hasAlert && status === 'On Track' && (
-                      <div className="flex items-center justify-between text-green-600 bg-green-50 p-1.5 rounded">
+                      <div className="flex items-center justify-between text-blue-600 bg-blue-50 p-1.5 rounded">
                         <CheckCircle2 className="h-4 w-4 mr-1" />
-                        <span className="text-xs">All payments up to date</span>
+                        <span className="text-xs">
+                          {isSinglePayment ? 'Payment not due yet' : 'All payments up to date'}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -285,7 +299,6 @@ export default function DashboardDebtPreview() {
     );
   }
 
-  // Return the component with consistent structure
   return (
     <div className="mb-6">
       {header}

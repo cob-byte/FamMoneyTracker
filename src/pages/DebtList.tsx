@@ -105,6 +105,14 @@ export default function DebtList() {
     };
   }
 
+  function calculateProgressPercentage(debt: Debt): number {
+    const totalPayments = debt.paymentSchedule.length;
+    if (totalPayments === 0) return 0;
+    
+    const paidPayments = debt.paymentSchedule.filter(ps => ps.isPaid).length;
+    return Math.min(Math.round((paidPayments / totalPayments) * 100), 100);
+  }
+
   const oweDebts = debts.filter(debt => debt.type === 'owe');
   const owedDebts = debts.filter(debt => debt.type === 'owed');
 
@@ -127,7 +135,7 @@ export default function DebtList() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6">
             <div className="md:flex md:items-center md:justify-between mb-6">
               <div className="flex-1 min-w-0">
-                <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">Debt Management</h2>
+                <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate pb-2">Debt Management</h2>
                 <p className="mt-1 text-sm text-gray-500">Track your debts and credits</p>
               </div>
               <div className="mt-4 flex md:mt-0 md:ml-4">
@@ -150,13 +158,21 @@ export default function DebtList() {
                     const remaining = calculateRemainingAmount(debt);
                     const nextDue = getNextDueDate(debt);
                     const { status, hasAlert, alertType } = getDebtStatus(debt);
+                    const isSinglePayment = debt.paymentSchedule.length === 1;
+                    const progressPercentage = calculateProgressPercentage(debt);
 
                     return (
                       <Link to={`/debt/${debt.id}`} className="block" key={debt.id}>
-                        <div className="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow">
-                          <div className="px-4 py-5 sm:p-6">
-                            <h3 className="text-lg font-medium text-indigo-600 truncate">{debt.name}</h3>
-                            <p className="text-sm text-gray-500">To: {debt.counterpartyName}</p>
+                        <div className="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow h-full">
+                          <div className="px-4 py-5 sm:p-6 flex flex-col h-full">
+                            <div className="flex items-center">
+                              <div className="flex-1">
+                                <div className="flex items-center">
+                                  <h3 className="text-lg font-medium text-indigo-600 truncate">{debt.name}</h3>
+                                </div>
+                                <p className="text-sm text-gray-500">To: {debt.counterpartyName}</p>
+                              </div>
+                            </div>
                             <div className="mt-4 grid grid-cols-2 gap-4">
                               <div>
                                 <p className="text-xs text-gray-500 uppercase">Total</p>
@@ -167,41 +183,61 @@ export default function DebtList() {
                                 <p className="text-lg font-semibold">{formatCurrency(remaining)}</p>
                               </div>
                             </div>
-                            <div className="mt-5 space-y-3">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                  <span className="text-sm text-gray-600">Next Due</span>
+                            {/* Middle section with progress bar or spacer */}
+                            <div className="mt-3 flex-grow">
+                              {!isSinglePayment && (
+                                <div className="relative pt-1">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-xs font-semibold text-indigo-600">Progress</span>
+                                    <span className="text-xs font-semibold text-indigo-600">{progressPercentage}%</span>
+                                  </div>
+                                  <div className="overflow-hidden h-2 mb-2 text-xs flex rounded bg-indigo-100">
+                                    <div 
+                                      style={{ width: `${progressPercentage}%` }} 
+                                      className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-500"
+                                    ></div>
+                                  </div>
                                 </div>
-                                <span className="text-sm font-medium text-indigo-600">
-                                  {nextDue ? formatDate(nextDue) : 'Paid Off'}
-                                </span>
-                              </div>
-                              
+                              )}
+                            </div>
+                            {/* Bottom section with details and status */}
+                            <div className="mt-3 space-y-3">
+                              {nextDue && (
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center">
+                                    <span className="text-sm text-gray-600">Next Due</span>
+                                  </div>
+                                  <span className="text-sm font-medium text-indigo-600">
+                                    {formatDate(nextDue)}
+                                  </span>
+                                </div>
+                              )}
                               {status === 'Paid Off' && (
                                 <div className="flex items-center justify-between text-green-600 bg-green-50 p-2 rounded-md">
                                   <CheckCircle2 className="h-4 w-4 mr-1" />
-                                  <span className="text-xs">All payments complete</span>
+                                  <span className="text-xs">
+                                    {isSinglePayment ? 'Payment complete' : 'All payments complete'}
+                                  </span>
                                 </div>
                               )}
-
                               {hasAlert && alertType === 'overdue' && (
                                 <div className="flex items-center justify-between text-red-600 bg-red-50 p-2 rounded-md">
                                   <AlertCircle className="h-4 w-4 mr-1" />
                                   <span className="text-xs">Payment overdue</span>
                                 </div>
                               )}
-
                               {hasAlert && alertType === 'due-soon' && (
                                 <div className="flex items-center justify-between text-amber-600 bg-amber-50 p-2 rounded-md">
                                   <AlertCircle className="h-4 w-4 mr-1" />
                                   <span className="text-xs">Payment due this week</span>
                                 </div>
                               )}
-
                               {!hasAlert && status === 'On Track' && (
-                                <div className="flex items-center justify-between text-green-600 bg-green-50 p-2 rounded-md">
+                                <div className="flex items-center justify-between text-blue-600 bg-blue-50 p-2 rounded-md">
                                   <CheckCircle2 className="h-4 w-4 mr-1" />
-                                  <span className="text-xs">All payments up to date</span>
+                                  <span className="text-xs">
+                                    {isSinglePayment ? 'Payment not due yet' : 'All payments up to date'}
+                                  </span>
                                 </div>
                               )}
                             </div>
@@ -229,13 +265,21 @@ export default function DebtList() {
                     const remaining = calculateRemainingAmount(debt);
                     const nextDue = getNextDueDate(debt);
                     const { status, hasAlert, alertType } = getDebtStatus(debt);
+                    const isSinglePayment = debt.paymentSchedule.length === 1;
+                    const progressPercentage = calculateProgressPercentage(debt);
 
                     return (
                       <Link to={`/debt/${debt.id}`} className="block" key={debt.id}>
-                        <div className="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow">
-                          <div className="px-4 py-5 sm:p-6">
-                            <h3 className="text-lg font-medium text-indigo-600 truncate">{debt.name}</h3>
-                            <p className="text-sm text-gray-500">From: {debt.counterpartyName}</p>
+                        <div className="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow h-full">
+                          <div className="px-4 py-5 sm:p-6 flex flex-col h-full">
+                            <div className="flex items-center">
+                              <div className="flex-1">
+                                <div className="flex items-center">
+                                  <h3 className="text-lg font-medium text-indigo-600 truncate">{debt.name}</h3>
+                                </div>
+                                <p className="text-sm text-gray-500">From: {debt.counterpartyName}</p>
+                              </div>
+                            </div>
                             <div className="mt-4 grid grid-cols-2 gap-4">
                               <div>
                                 <p className="text-xs text-gray-500 uppercase">Total</p>
@@ -246,41 +290,61 @@ export default function DebtList() {
                                 <p className="text-lg font-semibold">{formatCurrency(remaining)}</p>
                               </div>
                             </div>
-                            <div className="mt-5 space-y-3">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                  <span className="text-sm text-gray-600">Next Due</span>
+                            {/* Middle section with progress bar or spacer */}
+                            <div className="mt-3 flex-grow">
+                              {!isSinglePayment && (
+                                <div className="relative pt-1">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-xs font-semibold text-indigo-600">Progress</span>
+                                    <span className="text-xs font-semibold text-indigo-600">{progressPercentage}%</span>
+                                  </div>
+                                  <div className="overflow-hidden h-2 mb-2 text-xs flex rounded bg-indigo-100">
+                                    <div 
+                                      style={{ width: `${progressPercentage}%` }} 
+                                      className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-500"
+                                    ></div>
+                                  </div>
                                 </div>
-                                <span className="text-sm font-medium text-indigo-600">
-                                  {nextDue ? formatDate(nextDue) : 'Paid Off'}
-                                </span>
-                              </div>
-                              
+                              )}
+                            </div>
+                            {/* Bottom section with details and status */}
+                            <div className="mt-3 space-y-3">
+                              {nextDue && (
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center">
+                                    <span className="text-sm text-gray-600">Next Due</span>
+                                  </div>
+                                  <span className="text-sm font-medium text-indigo-600">
+                                    {formatDate(nextDue)}
+                                  </span>
+                                </div>
+                              )}
                               {status === 'Paid Off' && (
                                 <div className="flex items-center justify-between text-green-600 bg-green-50 p-2 rounded-md">
                                   <CheckCircle2 className="h-4 w-4 mr-1" />
-                                  <span className="text-xs">All payments received</span>
+                                  <span className="text-xs">
+                                    {isSinglePayment ? 'Payment received' : 'All payments received'}
+                                  </span>
                                 </div>
                               )}
-
                               {hasAlert && alertType === 'overdue' && (
                                 <div className="flex items-center justify-between text-red-600 bg-red-50 p-2 rounded-md">
                                   <AlertCircle className="h-4 w-4 mr-1" />
                                   <span className="text-xs">Payment overdue</span>
                                 </div>
                               )}
-
                               {hasAlert && alertType === 'due-soon' && (
                                 <div className="flex items-center justify-between text-amber-600 bg-amber-50 p-2 rounded-md">
                                   <AlertCircle className="h-4 w-4 mr-1" />
                                   <span className="text-xs">Payment due this week</span>
                                 </div>
                               )}
-
                               {!hasAlert && status === 'On Track' && (
-                                <div className="flex items-center justify-between text-green-600 bg-green-50 p-2 rounded-md">
+                                <div className="flex items-center justify-between text-blue-600 bg-blue-50 p-2 rounded-md">
                                   <CheckCircle2 className="h-4 w-4 mr-1" />
-                                  <span className="text-xs">All payments up to date</span>
+                                  <span className="text-xs">
+                                    {isSinglePayment ? 'Payment not due yet' : 'All payments up to date'}
+                                  </span>
                                 </div>
                               )}
                             </div>

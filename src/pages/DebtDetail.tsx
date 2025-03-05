@@ -14,7 +14,9 @@ export default function DebtDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedPaymentIndex, setSelectedPaymentIndex] = useState<number | null>(null);
+  const [selectedPayments, setSelectedPayments] = useState<number[]>([]);
+  const [selectionMode, setSelectionMode] = useState<'unpaid' | 'paid' | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'affectAccount' | 'markOnly'>('affectAccount');
   const [selectedAccountId, setSelectedAccountId] = useState('');
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -57,131 +59,181 @@ export default function DebtDetail() {
     fetchData();
   }, [debtId, currentUser, db]);
 
-  async function handleMarkPayment() {
-    if (!debt || !currentUser || !debtId || selectedPaymentIndex === null || !selectedAccountId) return;
-    const payment = debt.paymentSchedule[selectedPaymentIndex];
-    try {
-      setLoading(true);
-      const debtRef = doc(db, 'users', currentUser.uid, 'debts', debtId);
-      const account = accounts.find(acc => acc.id === selectedAccountId);
-      if (!account) throw new Error('Account not found');
-
-      if (debt.type === 'owe') {
-        if (payment.amount > account.balance) {
-          toast.error(`Insufficient funds in ${account.name}. Available: ₱${account.balance.toFixed(2)}`);
-          return;
-        }
-        const transactionRef = doc(db, 'users', currentUser.uid, 'transactions', Date.now().toString());
-        await setDoc(transactionRef, {
-          type: 'expense',
-          amount: payment.amount,
-          description: `Debt payment to ${debt.counterpartyName}`,
-          category: 'Debt',
-          accountId: selectedAccountId,
-          accountName: account.name,
-          date: new Date(),
-          createdAt: new Date(),
-        });
-        await updateDoc(doc(db, 'users', currentUser.uid, 'accounts', selectedAccountId), {
-          balance: increment(-payment.amount),
-        });
-      } else {
-        const transactionRef = doc(db, 'users', currentUser.uid, 'transactions', Date.now().toString());
-        await setDoc(transactionRef, {
-          type: 'income',
-          amount: payment.amount,
-          description: `Debt payment from ${debt.counterpartyName}`,
-          category: 'Debt',
-          accountId: selectedAccountId,
-          accountName: account.name,
-          date: new Date(),
-          createdAt: new Date(),
-        });
-        await updateDoc(doc(db, 'users', currentUser.uid, 'accounts', selectedAccountId), {
-          balance: increment(payment.amount),
-        });
+  function handleCheckboxChange(index: number, isPaid: boolean) {
+    setSelectedPayments(prev => {
+      const newSelected = prev.includes(index)
+        ? prev.filter(i => i !== index)
+        : [...prev, index];
+      if (newSelected.length === 0) {
+        setSelectionMode(null);
+      } else if (prev.length === 0) {
+        setSelectionMode(isPaid ? 'paid' : 'unpaid');
       }
-
-      const updatedSchedule = debt.paymentSchedule.map((ps, idx) =>
-        idx === selectedPaymentIndex ? { ...ps, isPaid: true, accountId: selectedAccountId } : ps
-      );
-      await updateDoc(debtRef, { paymentSchedule: updatedSchedule, updatedAt: serverTimestamp() });
-      setDebt(prev => prev ? { ...prev, paymentSchedule: updatedSchedule } : null);
-      toast.success(debt.type === 'owe' ? 'Payment marked as paid' : 'Payment marked as received');
-    } catch (error) {
-      console.error('Error marking payment:', error);
-      toast.error('Failed to mark payment');
-    } finally {
-      setLoading(false);
-      setIsModalOpen(false);
-      setSelectedPaymentIndex(null);
-    }
+      return newSelected;
+    });
   }
 
-  async function handleUnmarkPayment(index: number) {
-    if (!confirm('This will reverse the transaction. Continue?') || !debt || !currentUser || !debtId) return;
-    const payment = debt.paymentSchedule[index];
-    if (!payment.accountId) return;
+  const fetchAccounts = async () => {
+    // Check if currentUser is null
+    if (!currentUser) {
+      console.error('User is not logged in');
+      return; // Exit the function early if no user
+    }
   
+    // Now TypeScript knows currentUser is not null, so accessing uid is safe
+    const accountsCollectionRef = collection(db, 'users', currentUser.uid, 'accounts');
+    const accountsSnapshot = await getDocs(accountsCollectionRef);
+    const accountsData = accountsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setAccounts(accountsData);
+    if (accountsData.length > 0) {
+      setSelectedAccountId(accountsData[0].id);
+    }
+  };
+
+  async function handleConfirmMarkPayments() {
+    if (!debt || !currentUser || !debtId || selectedPayments.length === 0) return;
     try {
-      const account = accounts.find(acc => acc.id === payment.accountId);
-      if (!account) throw new Error('Account not found');
-  
-      if (debt.type === 'owe') {
-        const transactionRef = doc(db, 'users', currentUser.uid, 'transactions', Date.now().toString());
-        await setDoc(transactionRef, {
-          type: 'income',
-          amount: payment.amount,
-          description: `Reversal of debt payment to ${debt.counterpartyName}`,
-          category: 'Debt',
-          accountId: payment.accountId,
-          accountName: account.name,
-          date: new Date(),
-          createdAt: new Date(),
-        });
-        await updateDoc(doc(db, 'users', currentUser.uid, 'accounts', payment.accountId), {
-          balance: increment(payment.amount),
-        });
-      } else {
-        if (payment.amount > account.balance) {
-          toast.error(`Insufficient funds in ${account.name}. Available: ₱${account.balance.toFixed(2)}`);
+      setLoading(true);
+      const totalAmount = selectedPayments.reduce((sum, idx) => sum + debt.paymentSchedule[idx].amount, 0);
+      const selectedAccount = accounts.find(acc => acc.id === selectedAccountId);
+
+      if (debt.type === 'owe' && paymentMethod === 'affectAccount') {
+        if (!selectedAccount) {
+          toast.error('Selected account not found');
           return;
         }
-        const transactionRef = doc(db, 'users', currentUser.uid, 'transactions', Date.now().toString());
-        await setDoc(transactionRef, {
-          type: 'expense',
-          amount: payment.amount,
-          description: `Reversal of debt payment from ${debt.counterpartyName}`,
-          category: 'Debt',
-          accountId: payment.accountId,
-          accountName: account.name,
-          date: new Date(),
-          createdAt: new Date(),
-        });
-        await updateDoc(doc(db, 'users', currentUser.uid, 'accounts', payment.accountId), {
-          balance: increment(-payment.amount),
-        });
+        if (totalAmount > selectedAccount.balance) {
+          toast.error(`Insufficient funds in ${selectedAccount.name}. Available: ₱${selectedAccount.balance.toFixed(2)}`);
+          return;
+        }
       }
-  
-      // Create a new payment object without the accountId field
-      const updatedPayment = { ...debt.paymentSchedule[index], isPaid: false };
-      // Delete the accountId property instead of setting it to undefined
-      delete updatedPayment.accountId;
-      
+
+      for (const idx of selectedPayments) {
+        const payment = debt.paymentSchedule[idx];
+        if (paymentMethod === 'affectAccount' && selectedAccount) {
+          const transactionRef = doc(db, 'users', currentUser.uid, 'transactions', Date.now().toString());
+          if (debt.type === 'owe') {
+            await setDoc(transactionRef, {
+              type: 'expense',
+              amount: payment.amount,
+              description: `Debt payment to ${debt.counterpartyName}`,
+              category: 'Debt',
+              accountId: selectedAccountId,
+              accountName: selectedAccount.name,
+              date: new Date(),
+              createdAt: new Date(),
+            });
+            await updateDoc(doc(db, 'users', currentUser.uid, 'accounts', selectedAccountId), {
+              balance: increment(-payment.amount),
+            });
+          } else {
+            await setDoc(transactionRef, {
+              type: 'income',
+              amount: payment.amount,
+              description: `Debt payment from ${debt.counterpartyName}`,
+              category: 'Debt',
+              accountId: selectedAccountId,
+              accountName: selectedAccount.name,
+              date: new Date(),
+              createdAt: new Date(),
+            });
+            await updateDoc(doc(db, 'users', currentUser.uid, 'accounts', selectedAccountId), {
+              balance: increment(payment.amount),
+            });
+          }
+        }
+      }
+
       const updatedSchedule = debt.paymentSchedule.map((ps, idx) =>
-        idx === index ? updatedPayment : ps
+        selectedPayments.includes(idx)
+          ? paymentMethod === 'affectAccount'
+            ? { ...ps, isPaid: true, accountId: selectedAccountId }
+            : { ...ps, isPaid: true }
+          : ps
       );
-      
       await updateDoc(doc(db, 'users', currentUser.uid, 'debts', debtId), {
         paymentSchedule: updatedSchedule,
         updatedAt: serverTimestamp(),
       });
-      
+      fetchAccounts();
       setDebt(prev => prev ? { ...prev, paymentSchedule: updatedSchedule } : null);
-      toast.success('Payment unmarked');
+      toast.success(`${selectedPayments.length} payment(s) marked as ${debt.type === 'owe' ? 'paid' : 'received'}`);
     } catch (error) {
-      console.error('Error unmarking payment:', error);
-      toast.error('Failed to unmark payment');
+      console.error('Error marking payments:', error);
+      toast.error('Failed to mark payments');
+    } finally {
+      setLoading(false);
+      setIsModalOpen(false);
+      setSelectedPayments([]);
+      setSelectionMode(null);
+    }
+  }
+
+  async function handleUnmarkPayments(indices: number[]) {
+    if (!confirm(`This will set ${indices.length} payment(s) as unpaid. If any were associated with an account, reversal transactions will be created. Continue?`)) return;
+    if (!debt || !currentUser || !debtId) return;
+    try {
+      setLoading(true);
+      for (const idx of indices) {
+        const payment = debt.paymentSchedule[idx];
+        if (payment.accountId) {
+          const account = accounts.find(acc => acc.id === payment.accountId);
+          if (!account) throw new Error(`Account not found for payment ${idx + 1}`);
+          if (debt.type === 'owe') {
+            const transactionRef = doc(db, 'users', currentUser.uid, 'transactions', Date.now().toString());
+            await setDoc(transactionRef, {
+              type: 'income',
+              amount: payment.amount,
+              description: `Reversal of debt payment to ${debt.counterpartyName}`,
+              category: 'Debt',
+              accountId: payment.accountId,
+              accountName: account.name,
+              date: new Date(),
+              createdAt: new Date(),
+            });
+            await updateDoc(doc(db, 'users', currentUser.uid, 'accounts', payment.accountId), {
+              balance: increment(payment.amount),
+            });
+          } else {
+            if (payment.amount > account.balance) {
+              toast.error(`Insufficient funds in ${account.name} to reverse payment ${idx + 1}. Available: ₱${account.balance.toFixed(2)}`);
+              return;
+            }
+            const transactionRef = doc(db, 'users', currentUser.uid, 'transactions', Date.now().toString());
+            await setDoc(transactionRef, {
+              type: 'expense',
+              amount: payment.amount,
+              description: `Reversal of debt payment from ${debt.counterpartyName}`,
+              category: 'Debt',
+              accountId: payment.accountId,
+              accountName: account.name,
+              date: new Date(),
+              createdAt: new Date(),
+            });
+            await updateDoc(doc(db, 'users', currentUser.uid, 'accounts', payment.accountId), {
+              balance: increment(-payment.amount),
+            });
+          }
+        }
+      }
+
+      const updatedSchedule = debt.paymentSchedule.map((ps, idx) =>
+        indices.includes(idx) ? { dueDate: ps.dueDate, amount: ps.amount, isPaid: false } : ps
+      );
+      await updateDoc(doc(db, 'users', currentUser.uid, 'debts', debtId), {
+        paymentSchedule: updatedSchedule,
+        updatedAt: serverTimestamp(),
+      });
+      fetchAccounts();
+      setDebt(prev => prev ? { ...prev, paymentSchedule: updatedSchedule } : null);
+      toast.success(`${indices.length} payment(s) marked as unpaid`);
+    } catch (error) {
+      console.error('Error unmarking payments:', error);
+      toast.error('Failed to unmark payments');
+    } finally {
+      setLoading(false);
+      setSelectedPayments([]);
+      setSelectionMode(null);
     }
   }
 
@@ -189,46 +241,83 @@ export default function DebtDetail() {
     return new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: 'numeric' }).format(date);
   }
 
-  const renderModal = () => (
-    <div className="fixed inset-0 z-50 overflow-y-auto backdrop-blur-sm bg-black/20">
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <div className="relative my-8 mx-auto p-6 border max-w-lg shadow-lg rounded-md bg-white">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">
-            {debt?.type === 'owe' ? 'Select Account to Pay From' : 'Select Account to Receive Payment'}
-          </h3>
-          <div className="mb-4">
-            <label htmlFor="account" className="block text-sm font-medium text-gray-700">Account</label>
-            <select
-              id="account"
-              value={selectedAccountId}
-              onChange={(e) => setSelectedAccountId(e.target.value)}
-              className="mt-1 block w-full pl-3 pr-10 py-2 border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 rounded-md"
-            >
-              {accounts.map(account => (
-                <option key={account.id} value={account.id}>
-                  {account.name} (₱{account.balance?.toFixed(2) || '0.00'})
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex justify-end space-x-3">
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleMarkPayment}
-              className="px-4 py-2 border border-transparent rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-            >
-              Confirm
-            </button>
+  const renderModal = () => {
+    if (!debt) return null;
+    const totalAmount = selectedPayments.reduce((sum, idx) => sum + debt.paymentSchedule[idx].amount, 0);
+    return (
+      <div className="fixed inset-0 z-50 overflow-y-auto backdrop-blur-sm bg-black/20">
+        <div className="flex items-center justify-center min-h-screen p-4">
+          <div className="relative my-8 mx-auto p-6 border max-w-lg shadow-lg rounded-md bg-white">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Confirm {debt.type === 'owe' ? 'Payment' : 'Receipt'}
+            </h3>
+            <p className="text-sm text-gray-600">
+              {debt.type === 'owe' ? 'Paying' : 'Receiving'} for payments: {selectedPayments.map(idx => `Payment ${idx + 1}`).join(', ')}
+            </p>
+            <p className="text-sm text-gray-600">Total Amount: ₱{totalAmount.toLocaleString()}</p>
+            <div className="mt-4">
+              <label className="inline-flex items-center">
+                <input
+                  type="radio"
+                  className="form-radio"
+                  value="affectAccount"
+                  checked={paymentMethod === 'affectAccount'}
+                  onChange={() => setPaymentMethod('affectAccount')}
+                />
+                <span className="ml-2">{debt.type === 'owe' ? 'Deduct from Account' : 'Add to Account'}</span>
+              </label>
+              <label className="inline-flex items-center ml-6">
+                <input
+                  type="radio"
+                  className="form-radio"
+                  value="markOnly"
+                  checked={paymentMethod === 'markOnly'}
+                  onChange={() => setPaymentMethod('markOnly')}
+                />
+                <span className="ml-2">{debt.type === 'owe' ? 'Mark as Paid Only' : 'Mark as Received Only'}</span>
+              </label>
+              {paymentMethod === 'markOnly' && (
+                <p className="text-xs text-gray-500 mt-1">
+                  This marks the payments as {debt.type === 'owe' ? 'paid' : 'received'} without affecting any account (e.g., for payments made outside the system).
+                </p>
+              )}
+            </div>
+            {paymentMethod === 'affectAccount' && (
+              <div className="mt-4">
+                <label htmlFor="account" className="block text-sm font-medium text-gray-700">Account</label>
+                <select
+                  id="account"
+                  value={selectedAccountId}
+                  onChange={(e) => setSelectedAccountId(e.target.value)}
+                  className="mt-1 block w-full pl-3 pr-10 py-2 border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 rounded-md"
+                >
+                  {accounts.map(account => (
+                    <option key={account.id} value={account.id}>
+                      {account.name} (₱{account.balance?.toFixed(2) || '0.00'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="mt-6 flex justify-end space-x-3">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmMarkPayments}
+                className="px-4 py-2 border border-transparent rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+              >
+                Confirm
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (loading) return <div className="min-h-screen bg-gray-100 flex items-center justify-center"><p>Loading debt details...</p></div>;
   if (error || !debt) {
@@ -256,7 +345,6 @@ export default function DebtDetail() {
   today.setHours(0, 0, 0, 0);
 
   const overduePayments = debt.paymentSchedule.filter(ps => !ps.isPaid && ps.dueDate < today);
-
   const upcomingPayments = debt.paymentSchedule.filter(ps => {
     const dueDate = new Date(ps.dueDate);
     dueDate.setHours(0, 0, 0, 0);
@@ -275,7 +363,7 @@ export default function DebtDetail() {
                 <ArrowLeft className="h-5 w-5" />
               </Link>
               <h2 className="text-2xl font-bold text-gray-900">
-                {debt?.name || 'Debt Details'}
+                {debt.name || 'Debt Details'}
               </h2>
               <Link
                 to={`/debt/${debtId}/edit/`}
@@ -358,10 +446,40 @@ export default function DebtDetail() {
               <div className="px-4 py-5 sm:p-6">
                 <h3 className="text-lg font-medium text-gray-900">Payment Schedule</h3>
               </div>
+              <div className="px-4 py-3 sm:px-6">
+                <button
+                  disabled={selectedPayments.length === 0}
+                  onClick={() => {
+                    if (accounts.length === 0) {
+                      toast.error('Please create an account first');
+                      return;
+                    }
+                    if (selectionMode === 'unpaid') {
+                      setIsModalOpen(true);
+                    } else if (selectionMode === 'paid') {
+                      handleUnmarkPayments(selectedPayments);
+                    }
+                  }}
+                  className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                    selectedPayments.length === 0
+                      ? 'bg-gray-300'
+                      : selectionMode === 'unpaid'
+                      ? 'bg-indigo-600 hover:bg-indigo-700'
+                      : 'bg-red-600 hover:bg-red-700'
+                  }`}
+                >
+                  {selectionMode === 'unpaid'
+                    ? `Mark Selected as ${debt.type === 'owe' ? 'Paid' : 'Received'}`
+                    : selectionMode === 'paid'
+                    ? 'Unmark Selected'
+                    : 'Select Payments'}
+                </button>
+              </div>
               <div className="border-t border-gray-200">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Select</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Due Date</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -373,6 +491,14 @@ export default function DebtDetail() {
                       const isDueSoon = upcomingPayments.some(ps => ps.dueDate.getTime() === payment.dueDate.getTime());
                       return (
                         <tr key={index} className={isDueSoon && !payment.isPaid ? 'bg-yellow-50' : ''}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <input
+                              type="checkbox"
+                              checked={selectedPayments.includes(index)}
+                              onChange={() => handleCheckboxChange(index, payment.isPaid)}
+                              disabled={selectionMode !== null && selectionMode !== (payment.isPaid ? 'paid' : 'unpaid')}
+                            />
+                          </td>
                           <td className="px-6 py-4 text-sm text-gray-500">{formatDate(payment.dueDate)}</td>
                           <td className="px-6 py-4 text-sm text-gray-500">₱{payment.amount.toLocaleString()}</td>
                           <td className="px-6 py-4">
@@ -385,7 +511,7 @@ export default function DebtDetail() {
                           <td className="px-6 py-4 text-sm">
                             {payment.isPaid ? (
                               <button
-                                onClick={() => handleUnmarkPayment(index)}
+                                onClick={() => handleUnmarkPayments([index])}
                                 className="inline-flex items-center px-3 py-1 rounded-md text-xs text-red-700 bg-red-100 hover:bg-red-200"
                               >
                                 <X className="h-4 w-4 mr-1" />
@@ -398,7 +524,8 @@ export default function DebtDetail() {
                                     toast.error('Please create an account first');
                                     return;
                                   }
-                                  setSelectedPaymentIndex(index);
+                                  setSelectedPayments([index]);
+                                  setSelectionMode('unpaid');
                                   setIsModalOpen(true);
                                 }}
                                 className="inline-flex items-center px-3 py-1 rounded-md text-xs text-green-700 bg-green-100 hover:bg-green-200"
