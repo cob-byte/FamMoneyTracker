@@ -67,10 +67,6 @@ export default function CreateDebt() {
         setError('Please enter valid multiple payment details');
         return;
       }
-      if (total % numPayments !== 0) {
-        setError('Total amount must be evenly divisible by number of payments');
-        return;
-      }
     }
 
     setLoading(true);
